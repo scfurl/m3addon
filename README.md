@@ -34,6 +34,23 @@ Check out the following to get Rcpp up and running on your system:
 
 https://github.com/RcppCore/Rcpp/issues/922
 
+## Using this software
+
+### Load h5
+
+Data can be loaded from a vector of folders as such:
+
+```
+cds<-load_cellranger_data_h5(folders)
+
+```
+
+Data generated using the cellranger 'aggregate' function can be used as such (note that only 1 folder is allowed):
+
+```
+cds<-load_cellranger_data_h5(folder, aggregated=T)
+
+```
 
 ## Authors
 
