@@ -24,6 +24,17 @@ Once you have it up and running, perform the following
 devtools::install_github('scfurl/m3addon')
 ```
 
+If you are using macOS get the following error: 
+
+```
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/math.h:301:15: fatal error: 'math.h' file not found
+```
+
+Check out the following to get Rcpp up and running on your system:
+
+https://github.com/RcppCore/Rcpp/issues/922
+
+
 ## Authors
 
 * **Scott Furlan** 
