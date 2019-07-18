@@ -1,16 +1,17 @@
 Package: m3addon
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
+Title: This package adds  to the popular "monocle3"
+Version: 0.1
 Date: 2019-06-24
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
+Author: ScottFurlan
+Maintainer: ScottFurlan <scottfuran@gmail.com>
 Description: More about what it does (maybe more than one line)
 License: What license is it under?
 Imports: 
   Rcpp (>= 1.0.0),
   monocle3 (>= 0.1.0),
-  ggplot2 (>= 3.0.0)
+  ggplot2 (>= 3.0.0),
+  h5 (>= 0.9.9)
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.1.1
 Encoding: UTF-8
