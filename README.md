@@ -38,14 +38,14 @@ https://github.com/RcppCore/Rcpp/issues/922
 
 ### Load h5
 
-Data can be loaded from a vector of folders as such:
+A monocle3 cds can be created from a vector of folders as such:
 
 ```
 cds<-load_cellranger_data_h5(folders)
 
 ```
 
-Data generated using the cellranger 'aggregate' function can be used as such (note that only 1 folder is allowed):
+Data generated using the cellranger 'aggregate' function can be used to create a monocle3 cds as follows:  (note that only 1 folder is currently supported)
 
 ```
 cds<-load_cellranger_data_h5(folder, aggregated=T)
