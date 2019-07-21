@@ -46,3 +46,4 @@ levels(factor(pData(cdsDE)$Group))
 gene_fits <-fit_models(cdsDE[1:10,], model_formula_str = "~Group", verbose = TRUE, cores = detectCores())
 
 
+
