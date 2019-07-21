@@ -25,8 +25,3 @@ each cell, detect_genes counts the number of genes above this threshold that
 are detectable. Results are added as columns num_cells_expressed and
 num_genes_expressed in the rowData and colData tables respectively.
 }
-\examples{
-\dontrun{
-cds <- detect_genes(cds, min_expr=0.1)
-}
-}

@@ -11,6 +11,7 @@
 #' @return Vector of single cell scores that are derived from the sum of all gene expression values in the geneset
 #' that were size factor corrected and log-normalized.
 #' @importFrom Matrix colSums
+#' @importFrom Matrix t
 #' @export
 #' 
 
@@ -68,10 +69,10 @@ estimate_corrected_score <- function(cds, marker_set1, fData_col="gene_short_nam
   # aggregate_marker_set1_score = log(aggregate_marker_set1_expression + 1)
   aggregate_marker_set1_score = colSums(aggregate_marker_set1_expression)
   fdat_notmarker_set1 = data.table::as.data.table(fData(cds)[!fData(cds)[[fData_col]] %in% marker_set1,])
-  control_list<-split(as.character(fdat_notmarker_set1$gene_short_name), fdat_notmarker_set1$expr_bin)
-  n = as.list(table(fData(cds_marker_set1)$expr_bin)*100)
+  control_list = split(as.character(fdat_notmarker_set1$gene_short_name), fdat_notmarker_set1$exprs_bin)
+  n = as.list(table(fData(cds_marker_set1)$exprs_bin)*100)
   n = n[n > 0]
-  control_set1<-unlist(lapply(1:length(n), function(x) sample(control_list[[names(n)[x]]], n[[x]], replace = T)))
+  control_set1 = unlist(lapply(1:length(n), function(x) sample(control_list[[names(n)[x]]], n[[x]], replace = T)))
   cds_control_set1 = cds[fData(cds)[[fData_col]] %in% control_set1,] 
   aggregate_control_set1_expression = normalized_counts(cds_control_set1)
   # aggregate_control_set1_expression = t(t(aggregate_control_set1_expression) / pData(cds_control_set1)$Size_Factor)

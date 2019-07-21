@@ -20,7 +20,7 @@ detect_genes <- function(cds, min_expr=0, exprs_bin=TRUE, exprs_cuts=25){
   rowData(cds)$num_cells_expressed <- Matrix::rowSums(SingleCellExperiment::counts(cds) > min_expr)
   colData(cds)$num_genes_expressed <- Matrix::colSums(SingleCellExperiment::counts(cds) > min_expr)
   if(exprs_bin){
-    fData(cds)$exprs_bin = cut2(log(Matrix::rowMeans(normalized_counts(cds))), m=floor(nrow(fData(cds))/25))
+    fData(cds)$exprs_bin = cut2(log(Matrix::rowMeans(normalized_counts(cds))), m=floor(nrow(fData(cds))/exprs_cuts))
   }
   cds
 }
