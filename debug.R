@@ -1,6 +1,7 @@
 library(monocle3)
 library(m3addon)
-
+reticulate::py_config()
+scrublet_R()
 detect_genes
 library(magrittr)
 
