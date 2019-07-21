@@ -1,5 +1,7 @@
 library(monocle3)
 library(m3addon)
+
+detect_genes
 library(magrittr)
 
 roxygen2::roxygenize(".")
