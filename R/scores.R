@@ -60,7 +60,7 @@ estimate_score <- function(cds, marker_set1, fData_col="gene_short_name"){
 #' @export
 #' 
 estimate_corrected_score <- function(cds, marker_set1, fData_col="gene_short_name"){
-  if(!"expr_bin" %in% colnames(fData(cds))) stop ("No expression binning performed, run m3addon implementation of detect_genes using default settings")
+  if(!"exprs_bin" %in% colnames(fData(cds))) stop ("No expression binning performed, run m3addon implementation of detect_genes using default settings")
   cds_marker_set1 = cds[fData(cds)[[fData_col]] %in% marker_set1,] 
   aggregate_marker_set1_expression = normalized_counts(cds_marker_set1)
   # aggregate_marker_set1_expression = t(t(aggregate_marker_set1_expression) / pData(cds_marker_set1)$Size_Factor)
