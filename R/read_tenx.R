@@ -91,7 +91,7 @@ load_cellranger_data_h5<-function(folders,
     pData(cds)$sample_no<-sapply(strsplit(rownames(pData(cds)), "-"), "[[", 2)
     agg$sample_no<-1:nrow(agg)
     if(expressed_genes){
-      cds<-detect_genes(cds)
+      cds<-detect_genes(cds, exprs_bin = F)
       cds<-cds[fData(cds)$num_cells_expressed>cell_min,]
     }
     cds<-add_meta_data_cds(cds=cds, meta=agg, cds_col = "sample_no", meta_col = "sample_no")
