@@ -1,14 +1,27 @@
 library(monocle3)
 library(m3addon)
 reticulate::py_config()
-scrublet_R()
-detect_genes
 library(magrittr)
+library(reticulate)
 
 roxygen2::roxygenize(".")
 usethis::use_build_ignore("debug.R")
 
 cds<-readRDS("data/m3cds.RDS")
+sm<-as.matrix(normalized_counts(cds[1:1000,sample(ncol(cds), 1000)]))
+bs = backspin(sm)
+
+library(RcppCNPy)
+npySave("data/sm.npy", sm)
+getwd()
+
+#in python
+import numpy as np
+sm = np.load('/Users/sfurla/Box Sync/PI_FurlanS/computation/Rproj/m3addon/data/sm.npy')
+backSPIN(sm)
+#seems to work
+
+
 # system.time({
 # rs<-m3addon:::rowStdDev(exprs(cds))
 # })
