@@ -6,19 +6,18 @@ read.cds.cellranger.h5.file = function(h5.file) {
   gene_ids = readDataSet(s["matrix"]["features"]["id"])
   gene_names =readDataSet(s["matrix"]["features"]["name"])
   data = as.double(readDataSet(s["matrix"]["data"]))
-  indices = as.integer(readDataSet(s["matrix"]["indices"]))
+  indices = as.integer(readDataSet(s["matrix"]["indices"])+1)
   indptr = as.integer(readDataSet(s["matrix"]["indptr"]))
-
-
+  shape = as.integer(readDataSet(s["matrix"]["shape"]))
+  #browser()
+  
   # gbm = new(
   #   "dgCMatrix",
   #   x = data, i = indices, p = indptr,
-  #   Dim = c(length(gene_ids), length(barcodes))
-  # )
-  # 
+  #   Dim = shape)
+  
   gbm = sparseMatrix(x = data, i = indices, p = indptr,
-    dims = c(length(gene_ids), length(barcodes))
-  )
+    dims = shape)
 
   pData.df = data.frame(
     barcode = barcodes,
@@ -116,7 +115,7 @@ load_cellranger_data_h5<-function(folders,
     if(aggregated & unfiltered){return(list(unfiltered_cds=cds_unfilt, filtered_cds=cds))}
   }
 
-
+  #browser()
   #multiple files (no_agg); unfiltered option
   if(is.null(samplenames)){
     sample.ids<-folders
@@ -136,9 +135,11 @@ load_cellranger_data_h5<-function(folders,
     pData(filtered.cds.list[[sample.id]])$n.umi<-colSums(exprs(filtered.cds.list[[sample.id]]))
   }
   
-  #add_rownames
-  fdat_rownames<-lapply(filtered.cds.list, function(cds) rownames(fData(cds)))
-  if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
+  #add_and checkrownames
+  if(length(filtered.cds.list)>1){
+    fdat_rownames<-lapply(filtered.cds.list, function(cds) rownames(fData(cds)))
+    if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
+  }
   #make fData
   common.fData = fData(filtered.cds.list[[sample.ids[1]]])
   names(filtered.cds.list)<-names(sample.ids)
@@ -187,9 +188,11 @@ load_cellranger_data_h5<-function(folders,
       pData(unfiltered.cds.list[[sample.id]])$n.umi<-colSums(exprs(unfiltered.cds.list[[sample.id]]))
   }
   
-  #add_rownames
-  fdat_rownames<-lapply(unfiltered.cds.list, function(cds) rownames(fData(cds)))
-  if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
+  #add_and checkrownames
+  if(length(filtered.cds.list)>1){
+    fdat_rownames<-lapply(filtered.cds.list, function(cds) rownames(fData(cds)))
+    if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
+  }
   #make fData
   common.fData = fData(unfiltered.cds.list[[sample.ids[1]]])
   names(unfiltered.cds.list)<-names(sample.ids)
