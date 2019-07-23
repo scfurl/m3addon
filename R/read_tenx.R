@@ -1,4 +1,5 @@
 #' @importFrom h5 h5file
+#' @importFrom Matrix sparseMatrix
 read.cds.cellranger.h5.file = function(h5.file) {
   s<-h5file(h5.file)
   barcodes = readDataSet(s["matrix"]["barcodes"])
@@ -9,10 +10,14 @@ read.cds.cellranger.h5.file = function(h5.file) {
   indptr = as.integer(readDataSet(s["matrix"]["indptr"]))
 
 
-  gbm = new(
-    "dgCMatrix",
-    x = data, i = indices, p = indptr,
-    Dim = c(length(gene_ids), length(barcodes))
+  # gbm = new(
+  #   "dgCMatrix",
+  #   x = data, i = indices, p = indptr,
+  #   Dim = c(length(gene_ids), length(barcodes))
+  # )
+  # 
+  gbm = sparseMatrix(x = data, i = indices, p = indptr,
+    dims = c(length(gene_ids), length(barcodes))
   )
 
   pData.df = data.frame(
@@ -63,31 +68,30 @@ read.cds.cellranger.h5.file = function(h5.file) {
 #' file must be included in the 'outs' folder.
 #' @return a cell_data_set object or a list of items if unfiltered data is returned (see unfiltered)
 #' @importFrom h5 h5file
+#' @importFrom Matrix colSums
 #' @export
 load_cellranger_data_h5<-function(folders, 
                                   samplenames=NULL, 
                                   unfiltered=F, 
                                   empty.droplet.threshold=15, 
                                   expressed_genes=TRUE,
-                                  cell_min=5,
+                                  cell_min=1,
                                   aggregated=F
                                   ){
   #This function reads a vector of cellranger folder "out" folders for .h5 files.  Optionally can
   #return the unfiltered data as well.  
+  
   if(aggregated){
+    #aggregate filtered option:
     if(length(folders)>1) stop("Only one aggregated folder supported")
-    message(paste0("Reading aggregated data for: ", folders[1]))
-    if(!file.exists(file.path(folders, "outs", "aggregation.csv"))) stop("aggregation.csv file must be present in 'outs'")
-    cds = read.cds.cellranger.h5.file(
-      file.path(folders[1], "outs", "raw_feature_bc_matrix.h5"))
-    agg<-read.csv(file.path(folders[1], "outs", "aggregation.csv"))
-    message(paste0("Finding threshold for aggregegated data: ", folders[1]))
+    filt_file<-file.path(folders[1], "outs", "filtered_feature_bc_matrix.h5")
+    unfilt_file<-file.path(folders[1], "outs", "raw_feature_bc_matrix.h5")
+    agg_file<-file.path(folders[1], "outs", "aggregation.csv")
+    message(paste0("Reading aggregated (filtered) data for: ", filt_file))
+    if(!file.exists(agg_file)) stop("aggregation.csv file must be present in 'outs'")
+    cds = read.cds.cellranger.h5.file(filt_file)
+    agg<-read.csv(agg_file)
     pData(cds)$n.umi = Matrix::colSums(exprs(cds))
-    h5.file<-file.path(folders[1], "outs", "filtered_feature_bc_matrix.h5")
-    s<-h5file(h5.file)
-    umi.count.thresholds.from.cellranger = pData(cds)$n.umi[order(-pData(cds)$n.umi)][readDataSet(s["matrix"]["shape"])[2]]
-    umi.count.thresholds = umi.count.thresholds.from.cellranger
-    cds = cds[,pData(cds)$n.umi >= umi.count.thresholds                                                                ]
     pData(cds)$sample_no<-sapply(strsplit(rownames(pData(cds)), "-"), "[[", 2)
     agg$sample_no<-1:nrow(agg)
     if(expressed_genes){
@@ -95,8 +99,25 @@ load_cellranger_data_h5<-function(folders,
       cds<-cds[fData(cds)$num_cells_expressed>cell_min,]
     }
     cds<-add_meta_data_cds(cds=cds, meta=agg, cds_col = "sample_no", meta_col = "sample_no")
-    return(cds)
+    if(aggregated & !unfiltered){return(cds)}
+    
+    #aggregate unfiltered option:
+    message(paste0("Reading aggregated (unfiltered) data for: ", filt_file))
+    cds_unfilt = read.cds.cellranger.h5.file(unfilt_file)
+    agg<-read.csv(agg_file)
+    pData(cds_unfilt)$n.umi = Matrix::colSums(exprs(cds_unfilt))
+    pData(cds_unfilt)$sample_no<-sapply(strsplit(rownames(pData(cds_unfilt)), "-"), "[[", 2)
+    agg$sample_no<-1:nrow(agg)
+    if(expressed_genes){
+      cds_unfilt<-detect_genes(cds_unfilt, exprs_bin = F)
+      cds_unfilt<-cds_unfilt[fData(cds_unfilt)$num_cells_expressed>cell_min,]
+    }
+    cds_unfilt<-add_meta_data_cds(cds=cds_unfilt, meta=agg, cds_col = "sample_no", meta_col = "sample_no")
+    if(aggregated & unfiltered){return(list(unfiltered_cds=cds_unfilt, filtered_cds=cds))}
   }
+
+
+  #multiple files (no_agg); unfiltered option
   if(is.null(samplenames)){
     sample.ids<-folders
     names(sample.ids)<-sapply(folders, basename)
@@ -104,94 +125,110 @@ load_cellranger_data_h5<-function(folders,
     sample.ids<-folders
     names(sample.ids)<-samplenames
   }
-
-  umi.count.thresholds.from.cellranger = list()
-  unfiltered.cds.list<-list()
-  umi.count.thresholds<-list()
-
-
-  #read data
-  for(sample.id in sample.ids){
-    message(paste0("Reading data for: ", sample.id))
-    unfiltered.cds.list[[sample.id]] = read.cds.cellranger.h5.file(
-      file.path(sample.id, "outs", "raw_feature_bc_matrix.h5"))
-  }
-
-  #Get threshes from cellranger
-  for (sample.id in sample.ids) {
-    message(paste0("Finding threshold for: ", sample.id))
-    pData(unfiltered.cds.list[[sample.id]])$n.umi =
-      Matrix::colSums(exprs(unfiltered.cds.list[[sample.id]]))
-
-    # umi.cdf = ecdf(pData(unfiltered.cds.list[[sample.id]])$n.umi)
-    #
-    # pData(unfiltered.cds.list[[sample.id]])$umi.quantile =
-    #   umi.cdf(pData(unfiltered.cds.list[[sample.id]])$n.umi)
-
-    h5.file<-file.path(sample.id, "outs", "filtered_feature_bc_matrix.h5")
-    s<-h5file(h5.file)
-    umi.count.thresholds.from.cellranger[[sample.id]] = pData(unfiltered.cds.list[[sample.id]])$n.umi[order(-pData(unfiltered.cds.list[[sample.id]])$n.umi)][readDataSet(s["matrix"]["shape"])[2]]
-
-    umi.count.thresholds[[sample.id]] = umi.count.thresholds.from.cellranger[[sample.id]]
-  }
-
   
-  filtered.cds.list = list()
-  for (sample.id in sample.ids) {
-    filtered.cds.list[[sample.id]] = unfiltered.cds.list[[sample.id]][,
-                                                                      pData(unfiltered.cds.list[[sample.id]])$n.umi >=
-                                                                        umi.count.thresholds[[sample.id]]
-                                                                      ]
+  ######filt
+  #read filtered data
+  filtered.cds.list<-list()
+  for(sample.id in sample.ids){
+    message(paste0("Reading (filtered) data for: ", sample.id))
+    filtered.cds.list[[sample.id]] = read.cds.cellranger.h5.file(
+      file.path(sample.id, "outs", "filtered_feature_bc_matrix.h5"))
+    pData(filtered.cds.list[[sample.id]])$n.umi<-colSums(exprs(filtered.cds.list[[sample.id]]))
   }
-
-  #sapply(sample.ids, function(x) ncol(filtered.cds.list[[x]]))
-  #rm(unfiltered.cds.list)
+  
+  #add_rownames
   fdat_rownames<-lapply(filtered.cds.list, function(cds) rownames(fData(cds)))
   if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
+  #make fData
   common.fData = fData(filtered.cds.list[[sample.ids[1]]])
-  names(unfiltered.cds.list)<-names(sample.ids)
   names(filtered.cds.list)<-names(sample.ids)
+  #make pData
   new.pData = list()
   for (sample.id in names(sample.ids)) {
     new.pData[[sample.id]] = pData(filtered.cds.list[[sample.id]])
-
+    
     new.pData[[sample.id]]$sample = sample.id
-
+    
     new.pData[[sample.id]]$cell = paste(
       sample.id, new.pData[[sample.id]]$barcode, sep = ".")
-
+    
     rownames(new.pData[[sample.id]]) = new.pData[[sample.id]]$cell
   }
-
+  #make exprsData
   new.exprs = list()
   for (sample.id in names(sample.ids)) {
     new.exprs[[sample.id]] = exprs(filtered.cds.list[[sample.id]])
     colnames(new.exprs[[sample.id]]) = new.pData[[sample.id]]$cell
   }
-
+  
+  #combine
   combined.pData = do.call(rbind, new.pData)
   combined.pData = combined.pData[, c("barcode", "n.umi",  "sample")]
   rownames(combined.pData) = paste0(combined.pData$sample, ".", combined.pData$barcode)
-  #head(combined.pData, 2)
-
-
   combined.exprs = do.call(cbind, new.exprs)
-
-
-  #colnames(combined.exprs)==rownames(combined.pData)
-
   cds = new_cell_data_set(
     combined.exprs,
     cell_metadata =  combined.pData,
     gene_metadata = common.fData
   )
-  if(unfiltered) return(list(cds=cds, threshes=umi.count.thresholds, unfiltered=unfiltered.cds.list))
   if(expressed_genes){
-    cds<-detect_genes(cds)
+    cds<-detect_genes(cds, exprs_bin = F)
     cds<-cds[fData(cds)$num_cells_expressed>cell_min,]
   }
-  cds
+  if(!unfiltered){return(cds)}
+
+  #####unfilt
+  #read unfiltered data
+  unfiltered.cds.list<-list()
+  for(sample.id in sample.ids){
+      message(paste0("Reading (unfiltered) data for: ", sample.id))
+      unfiltered.cds.list[[sample.id]] = read.cds.cellranger.h5.file(
+        file.path(sample.id, "outs", "raw_feature_bc_matrix.h5"))
+      pData(unfiltered.cds.list[[sample.id]])$n.umi<-colSums(exprs(unfiltered.cds.list[[sample.id]]))
+  }
+  
+  #add_rownames
+  fdat_rownames<-lapply(unfiltered.cds.list, function(cds) rownames(fData(cds)))
+  if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
+  #make fData
+  common.fData = fData(unfiltered.cds.list[[sample.ids[1]]])
+  names(unfiltered.cds.list)<-names(sample.ids)
+  #make pData
+  new.pData = list()
+  for (sample.id in names(sample.ids)) {
+    new.pData[[sample.id]] = pData(unfiltered.cds.list[[sample.id]])
+    
+    new.pData[[sample.id]]$sample = sample.id
+    
+    new.pData[[sample.id]]$cell = paste(
+      sample.id, new.pData[[sample.id]]$barcode, sep = ".")
+    
+    rownames(new.pData[[sample.id]]) = new.pData[[sample.id]]$cell
+  }
+  #make exprsData
+  new.exprs = list()
+  for (sample.id in names(sample.ids)) {
+    new.exprs[[sample.id]] = exprs(unfiltered.cds.list[[sample.id]])
+    colnames(new.exprs[[sample.id]]) = new.pData[[sample.id]]$cell
+  }
+  
+  #combine
+  combined.pData = do.call(rbind, new.pData)
+  combined.pData = combined.pData[, c("barcode", "n.umi",  "sample")]
+  rownames(combined.pData) = paste0(combined.pData$sample, ".", combined.pData$barcode)
+  combined.exprs = do.call(cbind, new.exprs)
+  cds_unfilt = new_cell_data_set(
+    combined.exprs,
+    cell_metadata =  combined.pData,
+    gene_metadata = common.fData
+  )
+  if(expressed_genes){
+    cds_unfilt<-detect_genes(cds_unfilt, exprs_bin = F)
+    cds_unfilt<-cds_unfilt[fData(cds_unfilt)$num_cells_expressed>cell_min,]
+  }
+  if(unfiltered){return(list(unfiltered_cds=cds_unfilt, filtered_cds=cds))}
 }
+
 
 #' Add colData (aka pData) to a cell_data_set
 #' @description This function will take a cds and add sample levels phenodata to all the cells from that 

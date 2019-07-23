@@ -64,9 +64,6 @@ estimate_corrected_score <- function(cds, marker_set1, fData_col="gene_short_nam
   if(!"exprs_bin" %in% colnames(fData(cds))) stop ("No expression binning performed, run m3addon implementation of detect_genes using default settings")
   cds_marker_set1 = cds[fData(cds)[[fData_col]] %in% marker_set1,] 
   aggregate_marker_set1_expression = normalized_counts(cds_marker_set1)
-  # aggregate_marker_set1_expression = t(t(aggregate_marker_set1_expression) / pData(cds_marker_set1)$Size_Factor)
-  # aggregate_marker_set1_expression = Matrix::colSums(aggregate_marker_set1_expression)
-  # aggregate_marker_set1_score = log(aggregate_marker_set1_expression + 1)
   aggregate_marker_set1_score = colSums(aggregate_marker_set1_expression)
   fdat_notmarker_set1 = data.table::as.data.table(fData(cds)[!fData(cds)[[fData_col]] %in% marker_set1,])
   control_list = split(as.character(fdat_notmarker_set1$gene_short_name), fdat_notmarker_set1$exprs_bin)
@@ -75,9 +72,6 @@ estimate_corrected_score <- function(cds, marker_set1, fData_col="gene_short_nam
   control_set1 = unlist(lapply(1:length(n), function(x) sample(control_list[[names(n)[x]]], n[[x]], replace = T)))
   cds_control_set1 = cds[fData(cds)[[fData_col]] %in% control_set1,] 
   aggregate_control_set1_expression = normalized_counts(cds_control_set1)
-  # aggregate_control_set1_expression = t(t(aggregate_control_set1_expression) / pData(cds_control_set1)$Size_Factor)
-  #aggregate_control_set1_expression = Matrix::colSums(aggregate_control_set1_expression)
-  #aggregate_control_set1_score = log(aggregate_control_set1_expression + 1)
   aggregate_control_set1_score = colSums(aggregate_control_set1_expression)
   aggregate_marker_set1_score/nrow(cds_marker_set1) - aggregate_control_set1_score/nrow(cds_control_set1)
 }
