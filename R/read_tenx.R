@@ -1,7 +1,7 @@
 #' @importFrom h5 h5file
 #' @importFrom Matrix sparseMatrix
 read.cds.cellranger.h5.file = function(h5.file) {
-  s<-h5file(h5.file)
+  s<-h5file(h5.file, mode="r")
   barcodes = readDataSet(s["matrix"]["barcodes"])
   gene_ids = readDataSet(s["matrix"]["features"]["id"])
   gene_names =readDataSet(s["matrix"]["features"]["name"])
