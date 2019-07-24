@@ -8,7 +8,13 @@ roxygen2::roxygenize(".")
 usethis::use_build_ignore("debug.R")
 
 cds<-readRDS("data/m3cds.RDS")
+
+
 sm<-as.matrix(normalized_counts(cds[1:1000,sample(ncol(cds), 1000)]))
+dim(sm)
+x <- matrix(rnorm(100), nrow = 20)
+coords<-spRing(x, method="euclidean")
+
 bs = backspin(sm)
 
 library(RcppCNPy)

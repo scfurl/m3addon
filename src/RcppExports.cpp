@@ -6,6 +6,30 @@
 
 using namespace Rcpp;
 
+// calcKNNgraph_pearson
+IntegerMatrix calcKNNgraph_pearson(NumericMatrix x, int k);
+RcppExport SEXP _m3addon_calcKNNgraph_pearson(SEXP xSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(calcKNNgraph_pearson(x, k));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calcKNNgraph_euclidean
+IntegerMatrix calcKNNgraph_euclidean(NumericMatrix x, int k);
+RcppExport SEXP _m3addon_calcKNNgraph_euclidean(SEXP xSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(calcKNNgraph_euclidean(x, k));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sp_show_storage
 Rcpp::NumericMatrix sp_show_storage(const arma::sp_mat& x);
 RcppExport SEXP _m3addon_sp_show_storage(SEXP xSEXP) {
@@ -102,6 +126,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_m3addon_calcKNNgraph_pearson", (DL_FUNC) &_m3addon_calcKNNgraph_pearson, 2},
+    {"_m3addon_calcKNNgraph_euclidean", (DL_FUNC) &_m3addon_calcKNNgraph_euclidean, 2},
     {"_m3addon_sp_show_storage", (DL_FUNC) &_m3addon_sp_show_storage, 1},
     {"_m3addon_subsetSM", (DL_FUNC) &_m3addon_subsetSM, 3},
     {"_m3addon_calculateScoresCPP", (DL_FUNC) &_m3addon_calculateScoresCPP, 2},

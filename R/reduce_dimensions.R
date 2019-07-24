@@ -50,6 +50,8 @@
 #'   and Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
 #' @references tSNE: Laurens van der Maaten and Geoffrey Hinton. Visualizing
 #'   data using t-SNE. J. Mach. Learn. Res., 9(Nov):2579– 2605, 2008.
+#' @references monocle3 - this function only differs from that found in monocle3 in \
+#' that it allows for selection of num_dim
 #' @export
 reduce_dimension <- function(cds,
                              max_components=2,
