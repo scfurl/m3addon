@@ -187,7 +187,7 @@ IntegerMatrix calcKNNgraph_euclidean (NumericMatrix x, int k = 1){
     for (int j = 0 ; j < outrows; j ++) {
       NumericVector v1 = x.row(i);
       NumericVector v2 = x.row(j);
-      double d = pearson_dist(v1, v2);
+      double d = euc(v1, v2);
       xx(j) = (-1) * d; // To get biggest values
     }
     IntegerVector ti = top_index(xx, k);
