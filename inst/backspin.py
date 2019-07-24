@@ -1,10 +1,3 @@
-# def backSPIN (data, verbose):
-#   from backspinpy import SPIN, backSPIN, fit_CV, feature_selection, CEF_obj
-#   
-#   bs = backSPIN(data, verbose=True)
-#   
-#   return(bs)
-# 
 
 def backSPIN (data, numLevels, first_run_iters, first_run_step, runs_iters, runs_step, \
 split_limit_g, split_limit_c, stop_const, low_thrs, verbose):

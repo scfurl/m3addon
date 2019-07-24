@@ -1,11 +1,10 @@
 #'@export
-
-#' @title spRing
-#' Execute the spRing algorithm
+#'@title spRing
+#'Execute the spRing algorithm
 #'
-#' @description \code{spRing} takes a matrix of samples X features and computes a
-#' per-sample distance vector before selecting the k nearest neighbors.
-#' This is done iteratively in \code{Rcpp} to minimize the memory
+#'@description \code{spRing} takes a matrix of samples X features and computes a
+#'per-sample distance vector before selecting the k nearest neighbors.
+#'This is done iteratively in \code{Rcpp} to minimize the memory
 #' footprint while optimizing speed. Force directed layout is implemented
 #' from \code{igraphs layout_with_drl} function. If either/both knngraph
 #' or igraph is TRUE, this function will return an S3 object (list) with
@@ -24,13 +23,9 @@
 #' x <- matrix(rnorm(100), nrow = 20) # 20 samples
 #' coords <- spRing(x, k = 2, method = "euclidean")
 #' # plot(coords)
-#' @references Taken from https://github.com/caleblareau
-
+#' @references Adapted from https://github.com/caleblareau, based on Weinreb et. al. \
+#' Bioinformatics, Volume 34, Issue 7, 01 April 2018, Pages 1246–1248.
 #' @export
-
-setGeneric(name = "spRing", def = function(x, k = 10, method = "pearson", knngraph = FALSE, igraph = FALSE)
-    standardGeneric("spRing"))
-
 #' @rdname spRing
 spRing<-function(x, k = 10, method = "pearson", knngraph = FALSE, igraph = FALSE) {
 

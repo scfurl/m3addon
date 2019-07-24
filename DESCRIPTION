@@ -11,9 +11,8 @@ Imports:
   Rcpp (>= 1.0.0),
   monocle3 (>= 0.1.0),
   ggplot2 (>= 3.0.0),
-  h5 (>= 0.9.9)
-Suggests:
-    reticulate
+  h5 (>= 0.9.9),
+  reticulate (>= 1.12)
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.1.1
 Encoding: UTF-8
