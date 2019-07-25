@@ -23,6 +23,9 @@ with another color}
 
 \item{all_the_rest_of_them}{Should be self explanatory}
 }
+\value{
+Performs GSEA of "pathway" genes on stats'
+}
 \description{
 Performs GSEA (using fgsea) and returns a GSEA-style enrichment plot
 }

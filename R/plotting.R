@@ -106,6 +106,7 @@ monocle_theme_opts <- function()
 #' @param min_expr Minimum expression threshold for plotting genes
 #' @param rasterize Whether to plot cells as a rastered bitmap. Requires the
 #'   ggrastr package.
+#' @importFrom ggplot2 ggplot
 #'
 #' @return a ggplot2 plot object
 #' @export
@@ -565,8 +566,10 @@ plot_cells <- function(cds,
 #' @param rug = whether to make a rug plot
 #' @param dot_enhance character string denoting a color that enhances the dot appearance \
 #'  with another color
+#' @import ggplot2
+#' @importFrom fgsea calcGseaStat
 #' @param all_the_rest_of_them Should be self explanatory
-#' @returns Performs GSEA of "pathway" genes on stats'
+#' @return Performs GSEA of "pathway" genes on stats'
 #' @references fgsea package
 #' @export
 
@@ -622,6 +625,7 @@ enrichmentPlot<-function (pathway, stats,
   if(return_plot) return(g)
 }
 
+#' @keywords internal
 compileStats<-function(gsa, gs=NULL){
   #this function collapses adjusted stats from a gsa (piano package) generated using gsea or fgsea
   stats<-data.table::data.table(up=as.vector(gsa$pAdjDistinctDirUp), down=as.vector(gsa$pAdjDistinctDirDn))
@@ -634,17 +638,18 @@ compileStats<-function(gsa, gs=NULL){
   stats<-abs(stats-1)
   stats$dir<-dir
   stats$name<-names(gsa$gsc)
-  data.table::setkey(stats, name)
+  data.table::setkey(data.table::as.data.table(stats), name)
   return( stats[gs])
 }
 
+#' @export
 returnFDR<-function(gsa, gs=NULL){
   #this function returns a stat line describing the FDR and direction of a gsa generated using gsea or fsea
   dat<-compileStats(gsa=gsa, gs=gs)
   paste0("FDR = ", round(dat[[dat$dir]], 6), " in the ",dat$dir,  " direction")
 }
 
-
+#' @keywords internal
 monocle_theme_opts <- function()
 {
   theme(strip.background = element_rect(colour = 'white', fill = 'white')) +
