@@ -32,12 +32,14 @@ spRing<-function(x, k = 10, method = "pearson", knngraph = FALSE, igraph = FALSE
           stopifnot(method %in% c("euclidean", "pearson"))
           stopifnot(dim(x)[1] > k)
           stopifnot(k > 1)
+          message(paste0("Calculating KNN distance using: ", method, " distance..."))
           if(method == "pearson"){
             knng <- calcKNNgraph_pearson(x, k)
           } else if (method == "euclidean"){
             knng <- calcKNNgraph_euclidean(x, k)
           }
           mat <- cbind(rep(knng[,1], k - 1),as.numeric(knng[,-1]))
+          message(paste0("Calculating graph coordinates using adjacency matrix..."))
           igraphObj <- igraph::graph_from_adjacency_matrix(igraph::get.adjacency(igraph::graph.edgelist(mat, directed=TRUE)), mode = "directed")
           l <- igraph::layout_with_drl(igraphObj, options=list(simmer.attraction=0))
           if(knngraph | igraph){

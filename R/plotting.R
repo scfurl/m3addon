@@ -1,3 +1,5 @@
+
+
 #' Plot geneset scores
 #'
 #' @description Geneset scores are a score calculated for each single cell derived from \
@@ -38,6 +40,19 @@ plot_geneset<-function(cds, marker_set, name, fData_col="gene_short_name", metho
     scale_color_gradientn(colors=c( "darkblue","skyblue", "white", "red", "darkred"))
 }
 
+monocle_theme_opts <- function()
+{
+  theme(strip.background = element_rect(colour = 'white', fill = 'white')) +
+    theme(panel.border = element_blank()) +
+    theme(axis.line.x = element_line(size=0.25, color="black")) +
+    theme(axis.line.y = element_line(size=0.25, color="black")) +
+    theme(panel.grid.minor.x = element_blank(),
+          panel.grid.minor.y = element_blank()) +
+    theme(panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank()) +
+    theme(panel.background = element_rect(fill='white')) +
+    theme(legend.key=element_blank())
+}
 
 
 
@@ -541,4 +556,97 @@ plot_cells <- function(cds,
     theme(panel.background = element_rect(fill='white'))
   g
 }
+
+
+
+
+
+enrichmentPlot<-function (pathway, stats, 
+                          gseaParam = 1, 
+                          segment=F, rug=T, 
+                          rug_color="black", segment_color="black", 
+                          dot_color="green", dot_enhance=NULL, 
+                          dot_enhance_size=2, dot_shape=21, 
+                          dot_enhance_alpha=0.7, dot_size=1,
+                          return_data=FALSE,
+                          print_plot=FALSE,
+                          return_plot=TRUE) 
+{
+  rnk <- rank(-stats)
+  ord <- order(rnk)
+  statsAdj <- stats[ord]
+  statsAdj <- sign(statsAdj) * (abs(statsAdj)^gseaParam)
+  statsAdj <- statsAdj/max(abs(statsAdj))
+  pathway <- unname(as.vector(na.omit(match(pathway, names(statsAdj)))))
+  pathway <- sort(pathway)
+  gseaRes <- calcGseaStat(statsAdj, selectedStats = pathway, 
+                          returnAllExtremes = TRUE, returnLeadingEdge = TRUE)
+  #bottoms <- gseaRes$bottoms
+  tops <- gseaRes$tops
+  n <- length(statsAdj)
+  xs <- as.vector(pathway)
+  ys <- as.vector(rbind(tops))
+  le <- c(rep(1, length(xs)))
+  le[xs %in% gseaRes$le]<-5
+  le_bool<-le==5
+  toPlot <- data.frame(x = c(0, xs, n + 1), y = c(0, ys, 0), le=c(0,le,0))
+  diff <- (max(ys) - min(ys))/6
+  df_out<-data.frame(Rank = c(xs), ES = c(ys), LE=le_bool, row.names = names(tops))
+  x = y = NULL
+  g <- ggplot(toPlot, aes(x = x, y = y)) + geom_point(color = dot_color, 
+                                                      size = dot_size) + geom_hline(yintercept = max(ys), colour = "black", 
+                                                                                    linetype = "dashed") + geom_hline(yintercept = min(ys), 
+                                                                                                                      colour = "black", linetype = "dashed") + geom_hline(yintercept = 0, 
+                                                                                                                                                                          colour = "black") + geom_line(color = segment_color) + theme_bw()
+  # if(rug) {g<-g+geom_segment(data = data.frame(x = pathway), mapping = aes(x = x, 
+  #                                                                          y = min(ys)-diff/2, xend = x, yend = min(ys)-diff), size = 0.2, color=rug_color)}  
+  if(!is.null(dot_enhance)) {g<-g+geom_point(color = dot_enhance,
+                                             size = dot_enhance_size, shape=dot_shape, alpha=dot_enhance_alpha)}
+  
+  if(rug){ g<-g+ geom_point(data = toPlot, aes(x = x,
+                                               y = min(ys)-diff, size = le), colour = rug_color,shape = 124)}
+  g<-g+theme(panel.border = element_blank(), panel.grid.minor = element_blank()) + 
+    labs(x = "rank", y = "enrichment score")+ theme(legend.position="none")
+  if(print_plot) print(g)
+  if(return_data) return(list(plot=g, gseaRes=gseaRes, df_out=df_out))
+  if(return_plot) return(g)
+}
+
+compileStats<-function(gsa, gs=NULL){
+  #this function collapses adjusted stats from a gsa (piano package) generated using gsea or fgsea
+  stats<-data.table::data.table(up=as.vector(gsa$pAdjDistinctDirUp), down=as.vector(gsa$pAdjDistinctDirDn))
+  if(is.null(gs)){
+    gs<-names(gsa$gsc)
+  }
+  stats[is.na(stats)]<-1
+  stats<-1-stats
+  dir<-colnames(stats)[max.col(stats, ties.method = "first")]
+  stats<-abs(stats-1)
+  stats$dir<-dir
+  stats$name<-names(gsa$gsc)
+  data.table::setkey(stats, name)
+  return( stats[gs])
+}
+
+returnFDR<-function(gsa, gs=NULL){
+  #this function returns a stat line describing the FDR and direction of a gsa generated using gsea or fsea
+  dat<-compileStats(gsa=gsa, gs=gs)
+  paste0("FDR = ", round(dat[[dat$dir]], 6), " in the ",dat$dir,  " direction")
+}
+
+
+monocle_theme_opts <- function()
+{
+  theme(strip.background = element_rect(colour = 'white', fill = 'white')) +
+    theme(panel.border = element_blank()) +
+    theme(axis.line.x = element_line(size=0.25, color="black")) +
+    theme(axis.line.y = element_line(size=0.25, color="black")) +
+    theme(panel.grid.minor.x = element_blank(),
+          panel.grid.minor.y = element_blank()) +
+    theme(panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank()) +
+    theme(panel.background = element_rect(fill='white')) +
+    theme(legend.key=element_blank())
+}
+
 
