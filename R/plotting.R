@@ -639,7 +639,7 @@ compileStats<-function(gsa, gs=NULL){
   stats$dir<-dir
   stats$name<-names(gsa$gsc)
   data.table::setkey(data.table::as.data.table(stats), name)
-  return( stats[gs])
+  return( stats[gs, on="name"])
 }
 
 #' @export
