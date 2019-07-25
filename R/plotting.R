@@ -557,8 +557,18 @@ plot_cells <- function(cds,
   g
 }
 
-
-
+#' GSEA and plot
+#' @description Performs GSEA (using fgsea) and returns a GSEA-style enrichment plot
+#' @param pathway = vector of genes
+#' @param stats = vectir of ranked gene stats (usually fold change or SNR) with names \
+#' that contain the gene name
+#' @param rug = whether to make a rug plot
+#' @param dot_enhance character string denoting a color that enhances the dot appearance \
+#'  with another color
+#' @param all_the_rest_of_them Should be self explanatory
+#' @returns Performs GSEA of "pathway" genes on stats'
+#' @references fgsea package
+#' @export
 
 
 enrichmentPlot<-function (pathway, stats, 
