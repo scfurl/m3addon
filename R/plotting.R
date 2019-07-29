@@ -1,6 +1,53 @@
+#' Plot geneset scores as summary plot
+#'
+#' @description Geneset scores are a score calculated for each single cell derived from \
+#' more than one gene.  This function plots geneset scores grouped with a boxplot overlaying a violin\
+#' overlaying a jitter of the raw data.
+#' 
+#' When using method 'totals', the sum of the size-factor corrected, log-normalized gene \
+#' expression for a give set of genes is performed.  When using method 'corrected', single \
+#' cell scores for a give gene set that have been "corrected" using 100X genes with similar \
+#' expression levels.
+
+#' @param cds Input cell_data_set object.
+#' @param marker_set Vector of genes in the gene_metadata DataFrame (fData) that can be found in the column 'fData_col'
+#' @param name Name given to the geneset
+#' @param fData_col Character string denoting the gene_metadata DataFrame (fData) column that contains the genes in marker_set1.  Default = 'gene_short_name'
+#' @return Plot
+#' @import ggplot2
+#' @export
+#' @references Puram, S. V. et al. Single-Cell Transcriptomic Analysis of Primary and 
+#' Metastatic Tumor Ecosystems in Head and Neck Cancer. Cell 171, 1611.e1–1611.e24 (2017).
 
 
-#' Plot geneset scores
+plot_grouped_geneset<-function(cds, marker_set, name, by, scale="width", facet=NULL, adjust=1.4, size=0.05, alpha=0.1,
+                   method="totals", overlay_violinandbox=T, box_width=0.3, rotate_x=T){
+  if(method=="totals") pData(cds)[[name]]<-estimate_score(cds, marker_set)
+  if(method=="corrected") pData(cds)[[name]]<-estimate_corrected_score(cds, marker_set)
+  scores<-data.frame(pData(cds)[[name]], as.factor(pData(cds)[[by]]), stringsAsFactors = F)
+  if(!is.null(facet)){
+    scores<-cbind(scores, pData(cds)[[facet]])
+    colnames(scores)<-c(name, by, facet)
+  }else{
+    colnames(scores)<-c(name, by)
+  }
+  g<- ggplot(scores, aes_string(x=by, y=name, fill=by))
+  g<-g + geom_jitter(size=size, alpha=alpha)
+  if(!is.null(facet)){
+    g<-g+facet_wrap(as.formula(paste("~", facet)), scales = "free")
+  }
+  if(overlay_violinandbox){
+    g<-g+geom_violin(scale="width")+geom_boxplot(width=box_width, fill="white", outlier.size = 0)
+  }
+  if(rotate_x) {
+      g<-g+theme(axis.text.x=element_text(angle=90, hjust=0.95,vjust=0.2))
+  }
+  g
+}
+
+
+
+#' Plot geneset scores as cells
 #'
 #' @description Geneset scores are a score calculated for each single cell derived from \
 #' more than one gene.  This function plots geneset scores using monocle3's 'plot_genes' function.
@@ -27,16 +74,19 @@ plot_geneset<-function(cds, marker_set, name, fData_col="gene_short_name", metho
              error = function(e) FALSE),
     msg = "method must be one of 'totals' or 'corrected'")
   method <- match.arg(method)
-  if(method=="totals") pData(cds)[[name]]<-estimate_score(cds, M2[[name]])
-  if(method=="corrected") pData(cds)[[name]]<-estimate_corrected_score(cds, M2[[name]])
+  if(method=="totals") pData(cds)[[name]]<-estimate_score(cds, marker_set)
+  if(method=="corrected") pData(cds)[[name]]<-estimate_corrected_score(cds, marker_set)
   nc<-nchar(name)
   if(nc>50){fontsize<-10}else{fontsize=14}
-  switch(method, totals={loca="UW"}, 
-         corrected={loca="Broad"})
+  switch(method, totals={loca="log(sums)"}, 
+         corrected={loca="log(corr.)"})
   plot_cells(cds, color_cells_by = name, label_cell_groups = F, cell_size = 0.5)+ 
-    theme(legend.position="top", legend.title = element_blank())+
-    ggtitle(paste0(name, ": ", loca))+ 
+    #theme(legend.position="top", legend.title = element_blank())+
+    theme(legend.position="top")+
+    #ggtitle(paste0(name, ": ", loca))+ 
+    ggtitle(name)+  
     theme(plot.title = element_text(size = fontsize, face = "bold"), legend.text = element_text(size=9, angle = 90, vjust=0.5, hjust=0.3))+
+    labs(color = loca)+
     scale_color_gradientn(colors=c( "darkblue","skyblue", "white", "red", "darkred"))
 }
 
@@ -559,11 +609,14 @@ plot_cells <- function(cds,
 }
 
 #' GSEA and plot
-#' @description Performs GSEA (using fgsea) and returns a GSEA-style enrichment plot
-#' @param pathway = vector of genes
-#' @param stats = vectir of ranked gene stats (usually fold change or SNR) with names \
-#' that contain the gene name
-#' @param rug = whether to make a rug plot
+#' @description Performs GSEA (using fgsea) and returns a GSEA-style enrichment plot.  Optionally create an \
+#' enrichment plot with multiple layers that correspong to enrichnment of a given "pathway" in a list of ranked genes \
+#' such that each entry in a list corresponds to a different enrichment plot.  Alternatively, one may supply a list of \
+#' pathways to overlay the enrichment of multiple pathways on one ranked list.  Can't do both though....
+#' @param pathway = vector (or list) of genes.  Names of list will define plot coloring.
+#' @param stats = vector (or list) of ranked gene stats (usually fold change or SNR) with names \
+#' that contain the gene name.  Names of list will define plot coloring.
+#' @param rug = whether to make a rug plot(s).
 #' @param dot_enhance character string denoting a color that enhances the dot appearance \
 #'  with another color
 #' @import ggplot2
@@ -572,63 +625,173 @@ plot_cells <- function(cds,
 #' @return Performs GSEA of "pathway" genes on stats'
 #' @references fgsea package
 #' @export
-
-
+# enrichmentPlot<-function (pathway, stats, 
+#                           gseaParam = 1, 
+#                           segment=F, rug=T, 
+#                           rug_color="black", segment_color="black", 
+#                           dot_color="green", dot_enhance=NULL, 
+#                           dot_enhance_size=2, dot_shape=21, 
+#                           dot_enhance_alpha=0.7, dot_size=1,
+#                           return_data=FALSE,
+#                           print_plot=FALSE,
+#                           return_plot=TRUE) 
+# {
+#   rnk <- rank(-stats)
+#   ord <- order(rnk)
+#   statsAdj <- stats[ord]
+#   statsAdj <- sign(statsAdj) * (abs(statsAdj)^gseaParam)
+#   statsAdj <- statsAdj/max(abs(statsAdj))
+#   pathway <- unname(as.vector(na.omit(match(pathway, names(statsAdj)))))
+#   pathway <- sort(pathway)
+#   gseaRes <- calcGseaStat(statsAdj, selectedStats = pathway, 
+#                           returnAllExtremes = TRUE, returnLeadingEdge = TRUE)
+#   #bottoms <- gseaRes$bottoms
+#   tops <- gseaRes$tops
+#   n <- length(statsAdj)
+#   xs <- as.vector(pathway)
+#   ys <- as.vector(rbind(tops))
+#   le <- c(rep(1, length(xs)))
+#   le[xs %in% gseaRes$le]<-5
+#   le_bool<-le==5
+#   toPlot <- data.frame(x = c(0, xs, n + 1), y = c(0, ys, 0), le=c(0,le,0))
+#   diff <- (max(ys) - min(ys))/6
+#   df_out<-data.frame(Rank = c(xs), ES = c(ys), LE=le_bool, row.names = names(tops))
+#   x = y = NULL
+#   g <- ggplot(toPlot, aes(x = x, y = y)) + geom_point(color = dot_color, 
+#                                                       size = dot_size) + geom_hline(yintercept = max(ys), colour = "black", 
+#                                                                                     linetype = "dashed") + geom_hline(yintercept = min(ys), 
+#                                                                                                                       colour = "black", linetype = "dashed") + geom_hline(yintercept = 0, 
+#                                                                                                                                                                           colour = "black") + geom_line(color = segment_color) + theme_bw()
+#   # if(rug) {g<-g+geom_segment(data = data.frame(x = pathway), mapping = aes(x = x, 
+#   #                                                                          y = min(ys)-diff/2, xend = x, yend = min(ys)-diff), size = 0.2, color=rug_color)}  
+#   if(!is.null(dot_enhance)) {g<-g+geom_point(color = dot_enhance,
+#                                              size = dot_enhance_size, shape=dot_shape, alpha=dot_enhance_alpha)}
+#   
+#   if(rug){ g<-g+ geom_point(data = toPlot, aes(x = x,
+#                                                y = min(ys)-diff, size = le), colour = rug_color,shape = 124)}
+#   g<-g+theme(panel.border = element_blank(), panel.grid.minor = element_blank()) + 
+#     labs(x = "rank", y = "enrichment score")+ theme(legend.position="none")
+#   if(print_plot) print(g)
+#   if(return_data) return(list(plot=g, gseaRes=gseaRes, df_out=df_out))
+#   if(return_plot) return(g)
+# }
 enrichmentPlot<-function (pathway, stats, 
-                          gseaParam = 1, 
-                          segment=F, rug=T, 
-                          rug_color="black", segment_color="black", 
-                          dot_color="green", dot_enhance=NULL, 
+                          gseaParam = 1,  rug=T, dot_enhance="darkgrey",
                           dot_enhance_size=2, dot_shape=21, 
                           dot_enhance_alpha=0.7, dot_size=1,
                           return_data=FALSE,
                           print_plot=FALSE,
                           return_plot=TRUE) 
 {
-  rnk <- rank(-stats)
-  ord <- order(rnk)
-  statsAdj <- stats[ord]
-  statsAdj <- sign(statsAdj) * (abs(statsAdj)^gseaParam)
-  statsAdj <- statsAdj/max(abs(statsAdj))
-  pathway <- unname(as.vector(na.omit(match(pathway, names(statsAdj)))))
-  pathway <- sort(pathway)
-  gseaRes <- calcGseaStat(statsAdj, selectedStats = pathway, 
-                          returnAllExtremes = TRUE, returnLeadingEdge = TRUE)
-  #bottoms <- gseaRes$bottoms
-  tops <- gseaRes$tops
-  n <- length(statsAdj)
-  xs <- as.vector(pathway)
-  ys <- as.vector(rbind(tops))
-  le <- c(rep(1, length(xs)))
-  le[xs %in% gseaRes$le]<-5
-  le_bool<-le==5
-  toPlot <- data.frame(x = c(0, xs, n + 1), y = c(0, ys, 0), le=c(0,le,0))
-  diff <- (max(ys) - min(ys))/6
-  df_out<-data.frame(Rank = c(xs), ES = c(ys), LE=le_bool, row.names = names(tops))
+  list_amenable_args<-c("stats", "pathway")
+  for(arg in list_amenable_args){
+    if(class(get(arg))!="list") {assign(arg, list(get(arg)))}
+  }
+  if(is.null(names(stats))){names(stats)=1:length(stats)}
+  if(is.null(names(pathway))){names(pathway)=1:length(pathway)}
+  stats_list_process<-function(stats, pathway){
+    datalist<-lapply(1:length(stats), function(n){
+      rnk <- rank(-stats[[n]])
+      ord <- order(rnk)
+      statsAdj <- stats[[n]][ord]
+      statsAdj <- sign(statsAdj) * (abs(statsAdj)^gseaParam)
+      statsAdj <- statsAdj/max(abs(statsAdj), na.rm = T)
+      pw <- unname(as.vector(na.omit(match(pathway[[1]], names(statsAdj)))))
+      pw <- sort(pw)
+      gseaRes <- calcGseaStat(statsAdj, selectedStats = pw, 
+                              returnAllExtremes = TRUE, returnLeadingEdge = TRUE)
+      tops <- gseaRes$tops
+      i <- length(statsAdj)
+      xs <- as.vector(pw)
+      ys <- as.vector(rbind(tops))
+      le <- c(rep(1, length(xs)))
+      le[xs %in% gseaRes$le]<-5
+      le_bool<-le==5
+      toPlot <- data.frame(x = c(0, xs, i + 1), y = c(0, ys, 0), le=c(0,le,0))
+      #diff <- (max(ys) - min(ys))/6
+      df_out<-data.frame(Rank = c(xs), ES = c(ys), LE=le_bool, row.names = names(tops))
+      df_out$group<-names(stats)[n]
+      toPlot$group<-names(stats)[n]
+      list(df_out=df_out, toPlot=toPlot, gseaRes=gseaRes)
+    })
+    return(datalist)
+  }
+  pathway_list_process<-function(stats, pathway){
+    datalist<-lapply(1:length(pathway), function(n){
+      rnk <- rank(-stats[[1]])
+      ord <- order(rnk)
+      statsAdj <- stats[[1]][ord]
+      statsAdj <- sign(statsAdj) * (abs(statsAdj)^gseaParam)
+      statsAdj <- statsAdj/max(abs(statsAdj), na.rm = T)
+      pw <- unname(as.vector(na.omit(match(pathway[[n]], names(statsAdj)))))
+      pw <- sort(pw)
+      gseaRes <- calcGseaStat(statsAdj, selectedStats = pw, 
+                              returnAllExtremes = TRUE, returnLeadingEdge = TRUE)
+      tops <- gseaRes$tops
+      i <- length(statsAdj)
+      xs <- as.vector(pw)
+      ys <- as.vector(rbind(tops))
+      le <- c(rep(1, length(xs)))
+      le[xs %in% gseaRes$le]<-5
+      le_bool<-le==5
+      toPlot <- data.frame(x = c(0, xs, i + 1), y = c(0, ys, 0), le=c(0,le,0))
+      #diff <- (max(ys) - min(ys))/6
+      df_out<-data.frame(Rank = c(xs), ES = c(ys), LE=le_bool, row.names = names(tops))
+      df_out$group<-names(pathway)[n]
+      toPlot$group<-names(pathway)[n]
+      list(df_out=df_out, toPlot=toPlot, gseaRes=gseaRes)
+    })
+    return(datalist)
+  }
+  
+  if(length(stats)==1 & length(pathway) > 1){
+    datalist<-pathway_list_process(stats, pathway)
+  }else{
+    datalist<-stats_list_process(stats, pathway)
+  }
+  plotList<-lapply(datalist, "[[", 2)
+  maxs<-max(sapply(plotList, function(df) max(df$y)))
+  mins<-min(sapply(plotList, function(df) min(df$y)))
+  y_rug_counter<-mins - (maxs-mins)/6
+  y_rug_diff<-(maxs-mins)/10
+  for(i in 1:length(plotList)){
+    plotList[[i]]$y_rug<-y_rug_counter
+    y_rug_counter <- y_rug_counter - y_rug_diff
+  }
+  #find allgroup_min
+  
+  dataList<-lapply(datalist, "[[", 1)
+  gseaRes<-lapply(datalist, "[[", 3)
+  mergedPlot<-do.call(rbind, plotList)
+  dataList<-do.call(rbind, dataList)
+
   x = y = NULL
-  g <- ggplot(toPlot, aes(x = x, y = y)) + geom_point(color = dot_color, 
-                                                      size = dot_size) + geom_hline(yintercept = max(ys), colour = "black", 
-                                                                                    linetype = "dashed") + geom_hline(yintercept = min(ys), 
-                                                                                                                      colour = "black", linetype = "dashed") + geom_hline(yintercept = 0, 
-                                                                                                                                                                          colour = "black") + geom_line(color = segment_color) + theme_bw()
+  g <- ggplot(mergedPlot, aes(x = x, y = y, color=group))+ 
+    geom_point(size = dot_size)+ 
+    geom_hline(yintercept = maxs, linetype = "dashed")+ 
+    geom_hline(yintercept = mins, linetype = "dashed")+ 
+    geom_hline(yintercept = 0, colour = "black")+ 
+    geom_line()+ 
+    theme_bw()
   # if(rug) {g<-g+geom_segment(data = data.frame(x = pathway), mapping = aes(x = x, 
   #                                                                          y = min(ys)-diff/2, xend = x, yend = min(ys)-diff), size = 0.2, color=rug_color)}  
-  if(!is.null(dot_enhance)) {g<-g+geom_point(color = dot_enhance,
-                                             size = dot_enhance_size, shape=dot_shape, alpha=dot_enhance_alpha)}
+  if(!is.null(dot_enhance)) {g<-g+
+    geom_point(color = dot_enhance, size = dot_enhance_size, shape=dot_shape, alpha=dot_enhance_alpha)}
   
-  if(rug){ g<-g+ geom_point(data = toPlot, aes(x = x,
-                                               y = min(ys)-diff, size = le), colour = rug_color,shape = 124)}
+  if(rug){ g<-g+ geom_point(data = mergedPlot, aes(x = x,
+                                               y = y_rug, size = le, color=group), shape = 124)}
   g<-g+theme(panel.border = element_blank(), panel.grid.minor = element_blank()) + 
-    labs(x = "rank", y = "enrichment score")+ theme(legend.position="none")
+    labs(x = "rank", y = "enrichment score")+ guides( size = FALSE)
   if(print_plot) print(g)
-  if(return_data) return(list(plot=g, gseaRes=gseaRes, df_out=df_out))
+  if(return_data) return(list(plot=g, gseaRes=gseaRes, df_out=dataList))
   if(return_plot) return(g)
 }
+
 
 #' @keywords internal
 compileStats<-function(gsa, gs=NULL){
   #this function collapses adjusted stats from a gsa (piano package) generated using gsea or fgsea
-  stats<-data.table::data.table(up=as.vector(gsa$pAdjDistinctDirUp), down=as.vector(gsa$pAdjDistinctDirDn))
+  stats<-data.frame(up=as.vector(gsa$pAdjDistinctDirUp), down=as.vector(gsa$pAdjDistinctDirDn))
   if(is.null(gs)){
     gs<-names(gsa$gsc)
   }
@@ -638,15 +801,30 @@ compileStats<-function(gsa, gs=NULL){
   stats<-abs(stats-1)
   stats$dir<-dir
   stats$name<-names(gsa$gsc)
-  data.table::setkey(data.table::as.data.table(stats), name)
-  return( stats[gs, on="name"])
+  return( stats[stats$name %in% gs, ])
 }
 
 #' @export
 returnFDR<-function(gsa, gs=NULL){
   #this function returns a stat line describing the FDR and direction of a gsa generated using gsea or fsea
+  if(class(gsa)=="GSAres" & length(gs)==1){
   dat<-compileStats(gsa=gsa, gs=gs)
-  paste0("FDR = ", round(dat[[dat$dir]], 6), " in the ",dat$dir,  " direction")
+  return(paste0("FDR = ", round(dat[[dat$dir]], 6), " in the ",dat$dir,  " direction"))
+  }
+  if(class(gsa)=="list"){
+    ru<-lapply(1:length(gsa), function(num){
+      dat<-compileStats(gsa=gsa[[num]], gs=gs)
+      lineout<-paste0(names(gsa)[num], " <= ",round(dat[[dat$dir]], 4))
+    })
+    return(paste0("FDR: ", paste0(unlist(ru), collapse="; ")))
+  }
+  if(length(gs)>1){
+    ru<-lapply(1:length(gs), function(num){
+      dat<-compileStats(gsa=gsa, gs=gs[num])
+      lineout<-paste0(gs[num], " <= ",round(dat[[dat$dir]], 4))
+    })
+    return(paste0("FDR: ", paste0(unlist(ru), collapse="; ")))
+  }
 }
 
 #' @keywords internal

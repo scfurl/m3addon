@@ -4,19 +4,18 @@
 \alias{enrichmentPlot}
 \title{GSEA and plot}
 \usage{
-enrichmentPlot(pathway, stats, gseaParam = 1, segment = F, rug = T,
-  rug_color = "black", segment_color = "black", dot_color = "green",
-  dot_enhance = NULL, dot_enhance_size = 2, dot_shape = 21,
+enrichmentPlot(pathway, stats, gseaParam = 1, rug = T,
+  dot_enhance = "darkgrey", dot_enhance_size = 2, dot_shape = 21,
   dot_enhance_alpha = 0.7, dot_size = 1, return_data = FALSE,
   print_plot = FALSE, return_plot = TRUE)
 }
 \arguments{
-\item{pathway}{= vector of genes}
+\item{pathway}{= vector (or list) of genes.  Names of list will define plot coloring.}
 
-\item{stats}{= vectir of ranked gene stats (usually fold change or SNR) with names \
-that contain the gene name}
+\item{stats}{= vector (or list) of ranked gene stats (usually fold change or SNR) with names \
+that contain the gene name.  Names of list will define plot coloring.}
 
-\item{rug}{= whether to make a rug plot}
+\item{rug}{= whether to make a rug plot(s).}
 
 \item{dot_enhance}{character string denoting a color that enhances the dot appearance \
 with another color}
@@ -27,7 +26,10 @@ with another color}
 Performs GSEA of "pathway" genes on stats'
 }
 \description{
-Performs GSEA (using fgsea) and returns a GSEA-style enrichment plot
+Performs GSEA (using fgsea) and returns a GSEA-style enrichment plot.  Optionally create an \
+enrichment plot with multiple layers that correspong to enrichnment of a given "pathway" in a list of ranked genes \
+such that each entry in a list corresponds to a different enrichment plot.  Alternatively, one may supply a list of \
+pathways to overlay the enrichment of multiple pathways on one ranked list.  Can't do both though....
 }
 \references{
 fgsea package
