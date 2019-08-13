@@ -26,3 +26,21 @@ detect_genes <- function(cds, min_expr=0, exprs_bin=TRUE, exprs_cuts=25){
 }
 
 
+#' Convert a GMT File to a ragged list of genes
+#'
+#' @description GMT Files (See MSigDB) are a convenient means of storing genesets
+#'
+#' @param GMTfn GMT filename
+#' @export
+GMT_to_list<-function (GMTfn) 
+{
+  file.data <- readLines(GMTfn)
+  num.lines <- length(file.data)
+  output <- vector("list", num.lines)
+  for (i in 1:num.lines) {
+    vec <- unlist(strsplit(file.data[i], "\t"))
+    output[[i]] <- vec[3:length(vec)]
+    names(output)[i] <- vec[1]
+  }
+  return(output)
+}
