@@ -3,9 +3,9 @@ plot_gene_dispersion<-function(cds){
   prd<-cds@int_metadata$dispersion
   g<-ggplot2::ggplot(prd, ggplot2::aes(x = log_mean, y = fit)) 
   if("use_for_ordering" %in% colnames(cds@int_metadata$dispersion)){
-    g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=use_for_ordering), alpha=0.4)
+    g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=use_for_ordering, alpha=0.4))
   }else{
-    g <- g + ggplot2::geom_point(data=prd, ggplot2::aes( x=log_mean, y=log_dispersion), color="grey", alpha=0.4)
+    g <- g + ggplot2::geom_point(data=prd, ggplot2::aes( x=log_mean, y=log_dispersion, color="grey", alpha=0.4))
   }
   g<-g+
     ggplot2::theme_bw() +
@@ -13,7 +13,6 @@ plot_gene_dispersion<-function(cds){
     ggplot2::geom_smooth(data=prd, ggplot2::aes(ymin = lci, ymax = uci), stat = "identity")
   g
 }
-
 
 #' Select genes in a cell_data_set for dimensionality reduction
 #'
@@ -38,15 +37,24 @@ plot_gene_dispersion<-function(cds){
 #' @param cds the cell_data_set upon which to perform this operation.
 #' @param fit_min the minimum multiple of the dispersion fit calculation; default = 1
 #' @param fit_max the maximum multiple of the dispersion fit calculation; default = Inf
+#' @param logmean_ul the maximum multiple of the dispersion fit calculation; default = Inf
+#' @param logmean_ll the maximum multiple of the dispersion fit calculation; default = Inf
 #' @return an updated cell_data_set object with selected features 
 #' @export
 
-select_genes<-function(cds, fit_min=1, fit_max=Inf, logcv_ll=NULL, logcv_ul=NULL, logmean_ul=NULL, logmean_ll=NULL){
+select_genes<-function(cds, fit_min=1, fit_max=Inf, logmean_ul=NULL, logmean_ll=NULL){
   df<-cds@int_metadata$dispersion
   df$ratio<-df$log_dispersion/df$fit
   cds@int_metadata$dispersion$use_for_ordering <- df$ratio > fit_min & df$ratio < fit_max
+  if(!is.null(logmean_ll)){
+    cds@int_metadata$dispersion$use_for_ordering <- cds@int_metadata$dispersion$use_for_ordering & df$log_mean > logmean_ll
+  }
+  if(!is.null(logmean_ul)){
+    cds@int_metadata$dispersion$use_for_ordering <- cds@int_metadata$dispersion$use_for_ordering & df$log_mean < logmean_ul
+  }
   cds
 }
+
 
 #' @export
 get_ordering_genes<-function(cds, gene_column="id"){

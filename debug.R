@@ -3,7 +3,7 @@ library(m3addon)
 reticulate::py_config()
 library(magrittr)
 library(reticulate)
-
+library(Rcpp)
 roxygen2::roxygenize(".")
 usethis::use_build_ignore("debug.R")
 
@@ -68,4 +68,12 @@ levels(factor(pData(cdsDE)$Group))
 gene_fits <-fit_models(cdsDE[1:10,], model_formula_str = "~Group", verbose = TRUE, cores = detectCores())
 
 
+###########AF#############
+s <- matrix(seq(0, 100, by = .0001), ncol = 1)
+rbenchmark::benchmark(Arma = put_option_pricer_arma(s, 60, .01, .02, 1, .05),
+                      AF = put_option_pricer_af(s, 60, .01, .02, 1, .05),
+                      order = "relative", 
+                      replications = 100)[,1:4]
 
+Rcpp::sourceCpp("src/armatut.cpp")
+Rcpp::sourceCpp("src/aftut.cpp", rebuild = T)
