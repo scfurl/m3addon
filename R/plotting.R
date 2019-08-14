@@ -878,7 +878,7 @@ plot_rho_delta<-function (cds)
 #' @export
 
 plot_genes_violin<- function (cds_subset, grouping = "Cluster", 
-                                  min_expr = 0.1, scale_y=NULL,
+                                  min_expr = 0, scale_y=NULL,
                                   cell_size = 0.75, 
                                   nrow = NULL, ncol = 1, 
                                   panel_order = NULL, 
