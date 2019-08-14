@@ -877,16 +877,16 @@ plot_rho_delta<-function (cds)
 #' @importFrom data.table as.data.table
 #' @export
 
-plot_genes_violin<- function (cds_subset, grouping = "State", 
-                                  min_expr = NULL, scale_y=NULL,
+plot_genes_violin<- function (cds_subset, grouping = "Cluster", 
+                                  min_expr = 0.1, scale_y=NULL,
                                   cell_size = 0.75, 
                                   nrow = NULL, ncol = 1, 
                                   panel_order = NULL, 
                                   color_by = NULL, 
                                   plot_trend = F, 
                                   label_by_short_name = TRUE, 
-                                  relative_expr = TRUE, lognorm = FALSE, 
-                                  noise=FALSE, adjust=1.3, scale="width", 
+                                  relative_expr = TRUE, lognorm = TRUE, 
+                                  noise=FALSE, adjust=1.5, scale="width", 
                                   jitter=FALSE, trim=FALSE, 
                                   jitter_alpha = 0.3, round=FALSE, jitterzeros=FALSE,
                                   jitter_width = 0.05, jitter_height = 0,
