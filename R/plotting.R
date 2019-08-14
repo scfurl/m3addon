@@ -873,7 +873,7 @@ plot_rho_delta<-function (cds)
 
 #' @param cds Input cell_data_set object.
 #' @import ggplot2
-#' @importFrom rshape2 melt
+#' @importFrom reshape2 melt
 #' @importFrom data.table as.data.table
 #' @export
 
