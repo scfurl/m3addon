@@ -27,8 +27,8 @@ density_peak<-function(cds, rho=NULL, delta=NULL, reduction_method=c("UMAP", 'tS
   cds@reduce_dim_aux$densityPeak<- densityClust(dist(reducedDims(cds)[[reduction_method]]), gaussian = gaussian)
   if (is.null(rho) | is.null(delta)) {
     message("Use 0.95 of the delta and 0.95 of the rho as the cutoff for assigning density peaks and clusters")
-    rho <- quantile(dataClust$rho, probs = 0.95)
-    delta_threshold <- quantile(dataClust$delta, probs = 0.95)
+    rho <- quantile(cds@reduce_dim_aux$densityPeak$rho, probs = 0.95)
+    delta <- quantile(cds@reduce_dim_aux$densityPeak$delta, probs = 0.95)
   }
   #plot_rho_delta(cds)
   dc<-findClusters(cds@reduce_dim_aux$densityPeak, rho=rho, delta=delta)

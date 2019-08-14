@@ -867,4 +867,148 @@ plot_rho_delta<-function (cds)
   g
 }
 
+#' Plot violin plot of gene expression by group
+#'
+#' @description You can figure it out
+
+#' @param cds Input cell_data_set object.
+#' @import ggplot2
+#' @importFrom rshape2 melt
+#' @importFrom data.table as.data.table
+#' @export
+
+plot_genes_violin<- function (cds_subset, grouping = "State", 
+                                  min_expr = NULL, scale_y=NULL,
+                                  cell_size = 0.75, 
+                                  nrow = NULL, ncol = 1, 
+                                  panel_order = NULL, 
+                                  color_by = NULL, 
+                                  plot_trend = F, 
+                                  label_by_short_name = TRUE, 
+                                  relative_expr = TRUE, lognorm = FALSE, 
+                                  noise=FALSE, adjust=1.3, scale="width", 
+                                  jitter=FALSE, trim=FALSE, 
+                                  jitter_alpha = 0.3, round=FALSE, jitterzeros=FALSE,
+                                  jitter_width = 0.05, jitter_height = 0,
+                                  box_color="red", violin_alpha=1,
+                                  boxplot=F,
+                                  bwidth=0.3, bcolor="white") 
+{
+  if (relative_expr) {
+    cds_exprs<-exprs(cds_subset)
+      if (is.null(size_factors(cds_subset))) {
+        stop("Error: to call this function with relative_expr=TRUE, you must call estimateSizeFactors() first")
+      }
+      cds_exprs <- Matrix::t(Matrix::t(cds_exprs)/size_factors(cds_subset))
+    if(round){
+      cds_exprs <- as.data.table(melt(round(as.matrix(cds_exprs))))
+    }else{
+      cds_exprs <- as.data.table(melt(as.matrix(cds_exprs)))}
+  }else {
+    cds_exprs <- exprs(cds_subset)
+    cds_exprs <- as.data.table(melt(as.matrix(cds_exprs)))
+  }
+  if (is.null(min_expr)) {
+    min_expr <- 1
+  }
+  colnames(cds_exprs) <- c("f_id", "Cell", "expression")
+  cds_exprs$expression[cds_exprs$expression < min_expr] <- min_expr
+  cds_pData <- as.data.table(pData(cds_subset))
+  cds_pData$rn<-rownames(pData(cds_subset))
+  cds_fData <- as.data.table(fData(cds_subset))
+  cds_fData$rn<-rownames(fData(cds_subset))
+  cds_exprs$Cell<-as.character(cds_exprs$Cell)
+  cds_exprs <- merge(cds_exprs, cds_fData, by.x = "f_id", by.y = "rn")
+  cds_exprs <- merge(cds_exprs, cds_pData, by.x = "Cell", by.y = "rn")
+  cds_exprs$adjusted_expression <- log10(cds_exprs$expression+1)
+  
+  if (label_by_short_name == TRUE) {
+    if (is.null(cds_exprs$gene_short_name) == FALSE) {
+      cds_exprs$feature_label <- cds_exprs$gene_short_name
+      cds_exprs$feature_label[is.na(cds_exprs$feature_label)] <- cds_exprs$f_id
+    }
+    else {
+      cds_exprs$feature_label <- cds_exprs$f_id
+    }
+  }
+  else {
+    cds_exprs$feature_label <- cds_exprs$f_id
+  }
+  if (is.null(panel_order) == FALSE) {
+    cds_exprs$feature_label <- factor(cds_exprs$feature_label, 
+                                      levels = panel_order)
+  }
+  if(noise==TRUE){
+    noise <- rnorm(length(cds_exprs$adjusted_expression))/100000
+    cds_exprs$adjusted_expression=cds_exprs$adjusted_expression+noise
+  }
+  if(lognorm==TRUE){
+    q <- ggplot(aes_string(x = grouping, y = "adjusted_expression"), data = cds_exprs)
+  }else{
+    q <- ggplot(aes_string(x = grouping, y = "expression"), data = cds_exprs)
+  }
+  
+  
+  if (is.null(color_by) == FALSE) {
+    q <- q + geom_violin(aes_string(fill = color_by), adjust=adjust, scale=scale, trim=trim, alpha=violin_alpha)
+  }
+  else {
+    q <- q + geom_violin(adjust=adjust, scale="width")
+  }
+  
+  if(jitter){
+    if(!jitterzeros){
+      dat<-layer_data(q)
+      dat$y[dat$y==0]<-NA
+      #P$layers <- c(geom_boxplot(), P$layers)
+      q <- q + geom_jitter(data = dat, aes(x=x, y=y), height = jitter_height, width = jitter_width, alpha=jitter_alpha)
+      if (is.null(color_by) == FALSE) {
+        q <- q + geom_violin(aes_string(fill = color_by), adjust=adjust, scale=scale, trim=trim, alpha=violin_alpha)
+      }
+      else {
+        q <- q + geom_violin(adjust=adjust, scale="width")
+      }
+    }else{
+      q <- q + geom_jitter(height = jitter_height, width = jitter_width, alpha=jitter_alpha)
+      if (is.null(color_by) == FALSE) {
+        q <- q + geom_violin(aes_string(fill = color_by), adjust=adjust, scale=scale, trim=trim, alpha=violin_alpha)
+      }
+      else {
+        q <- q + geom_violin(adjust=adjust, scale="width")
+      }
+    }
+  }
+  if (plot_trend == TRUE) {
+    q <- q + stat_sum_df("mean_cl_boot", mapping = aes(group = grouping), fill=box_color)
+    # q <- q + stat_summary(aes_string(x = grouping, y = "adjusted_expression"),
+    #   color="black", size=0.5, fun.data = "mean_cl_boot", geom="hist")
+    if(lognorm==TRUE){
+      q <- q + stat_sum_df("mean_cl_boot", mapping = aes(group = grouping), geom="line", file=box_color)
+      # q <- q + stat_summary(aes_string(x = grouping, y = "adjusted_expression"), 
+      # color="black", fun.data = "mean_cl_boot", 
+      # size = 0.5, geom = "line")
+    }else{
+      q <- q + stat_sum_df("mean_cl_boot", mapping = aes(group = grouping), geom="line", fill=box_color)
+    }
+    
+  }
+  q <- q + facet_wrap(~feature_label, nrow = nrow, 
+                      ncol = ncol, scales = "free_y")
+  if (min_expr < 1) {
+    q <- q + expand_limits(y = c(min_expr, 1))
+  }
+  if(lognorm==TRUE){
+    q <- q + ylab("Log Expression") + xlab(grouping)
+  }else{
+    q <- q + ylab("Expression") + xlab(grouping)
+  }
+  q <- q + monocle:::monocle_theme_opts()
+  if(boxplot){
+    q<-q + geom_boxplot(width=bwidth, fill=bcolor)
+  }
+  if(!is.null(scale_y)){
+    q<-q + ylim(scale_y)
+  }
+  q
+}
 
