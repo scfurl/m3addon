@@ -843,3 +843,28 @@ monocle_theme_opts <- function()
 }
 
 
+#' Plot rho and delta for Density Peak 
+#'
+#' @description Plots the decision map of density clusters.
+
+#' @param cds Input cell_data_set object.
+#' @import ggplot2
+#' @export
+
+
+plot_rho_delta<-function (cds) 
+{
+  if (!is.null(cds@reduce_dim_aux$densityPeak)) {
+    df <- data.frame(rho = cds@reduce_dim_aux$densityPeak$rho, delta = cds@reduce_dim_aux$densityPeak$delta)
+    g <- qplot(rho, delta, data = df, alpha = I(0.5)) + 
+      monocle3:::monocle_theme_opts() + theme(legend.position = "top", 
+                                              legend.key.height = grid::unit(0.35, "in")) + theme(legend.key = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
+  }
+  else {
+    stop("Please run Density_Peak before using this plotting function")
+  }
+  g
+}
+
+
