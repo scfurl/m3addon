@@ -21,7 +21,7 @@
 
 
 plot_grouped_geneset<-function(cds, marker_set, name, by, scale="width", facet=NULL, adjust=1.4, size=0.05, alpha=0.1,
-                   method="totals", overlay_violinandbox=T, box_width=0.3, rotate_x=T){
+                   method="totals", overlay_violinandbox=T, box_width=0.3, rotate_x=T, jitter=T, return_values=F){
   if(method=="totals") pData(cds)[[name]]<-estimate_score(cds, marker_set)
   if(method=="corrected") pData(cds)[[name]]<-estimate_corrected_score(cds, marker_set)
   scores<-data.frame(pData(cds)[[name]], as.factor(pData(cds)[[by]]), stringsAsFactors = F)
@@ -32,17 +32,17 @@ plot_grouped_geneset<-function(cds, marker_set, name, by, scale="width", facet=N
     colnames(scores)<-c(name, by)
   }
   g<- ggplot(scores, aes_string(x=by, y=name, fill=by))
-  g<-g + geom_jitter(size=size, alpha=alpha)
-  if(!is.null(facet)){
-    g<-g+facet_wrap(as.formula(paste("~", facet)), scales = "free")
-  }
+  if(jitter)g<-g + geom_jitter(size=size, alpha=alpha)
   if(overlay_violinandbox){
     g<-g+geom_violin(scale="width")+geom_boxplot(width=box_width, fill="white", outlier.size = 0)
+  }
+  if(!is.null(facet)){
+    g<-g+facet_wrap(as.formula(paste("~", facet)), scales = "free")
   }
   if(rotate_x) {
       g<-g+theme(axis.text.x=element_text(angle=90, hjust=0.95,vjust=0.2))
   }
-  g
+  if(return_values)list(plot=g, scores=scores) else(g)
 }
 
 
@@ -68,7 +68,7 @@ plot_grouped_geneset<-function(cds, marker_set, name, by, scale="width", facet=N
 #' @references Puram, S. V. et al. Single-Cell Transcriptomic Analysis of Primary and 
 #' Metastatic Tumor Ecosystems in Head and Neck Cancer. Cell 171, 1611.e1–1611.e24 (2017).
 
-plot_geneset<-function(cds, marker_set, name, fData_col="gene_short_name", method=c("totals", "corrected")){
+plot_geneset<-function(cds, marker_set, name, fData_col="gene_short_name", method=c("totals", "corrected"), reduction_method="UMAP"){
   assertthat::assert_that(
     tryCatch(expr = ifelse(match.arg(method) == "",TRUE, TRUE),
              error = function(e) FALSE),
@@ -80,7 +80,7 @@ plot_geneset<-function(cds, marker_set, name, fData_col="gene_short_name", metho
   if(nc>50){fontsize<-10}else{fontsize=14}
   switch(method, totals={loca="log(sums)"}, 
          corrected={loca="log(corr.)"})
-  plot_cells(cds, color_cells_by = name, label_cell_groups = F, cell_size = 0.5)+ 
+  plot_cells(cds, color_cells_by = name, label_cell_groups = F, cell_size = 0.5, reduction_method = reduction_method)+ 
     #theme(legend.position="top", legend.title = element_blank())+
     theme(legend.position="top")+
     #ggtitle(paste0(name, ": ", loca))+ 
@@ -878,15 +878,16 @@ plot_rho_delta<-function (cds)
 #' @export
 
 plot_genes_violin<- function (cds_subset, grouping = "Cluster", 
-                                  min_expr = 0, scale_y=NULL,
+                                  min_expr = 0.1, scale_y=NULL,
                                   cell_size = 0.75, 
                                   nrow = NULL, ncol = 1, 
                                   panel_order = NULL, 
-                                  color_by = NULL, 
+                                  color_by = NULL,
+                                  remove_zeros=T,
                                   plot_trend = F, 
                                   label_by_short_name = TRUE, 
                                   relative_expr = TRUE, lognorm = TRUE, 
-                                  noise=FALSE, adjust=1.5, scale="width", 
+                                  noise=FALSE, adjust=2, scale="width", 
                                   jitter=FALSE, trim=FALSE, 
                                   jitter_alpha = 0.3, round=FALSE, jitterzeros=FALSE,
                                   jitter_width = 0.05, jitter_height = 0,
@@ -942,9 +943,16 @@ plot_genes_violin<- function (cds_subset, grouping = "Cluster",
     noise <- rnorm(length(cds_exprs$adjusted_expression))/100000
     cds_exprs$adjusted_expression=cds_exprs$adjusted_expression+noise
   }
+
   if(lognorm==TRUE){
+    if(remove_zeros){
+      cds_exprs$adjusted_expression[cds_exprs$adjusted_expression==0]<-NA
+    }
     q <- ggplot(aes_string(x = grouping, y = "adjusted_expression"), data = cds_exprs)
   }else{
+    if(remove_zeros){
+      cds_exprs$expression[cds_exprs$expression==0]<-NA
+    }
     q <- ggplot(aes_string(x = grouping, y = "expression"), data = cds_exprs)
   }
   
@@ -955,7 +963,7 @@ plot_genes_violin<- function (cds_subset, grouping = "Cluster",
   else {
     q <- q + geom_violin(adjust=adjust, scale="width")
   }
-  
+
   if(jitter){
     if(!jitterzeros){
       dat<-layer_data(q)
