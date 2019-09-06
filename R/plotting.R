@@ -762,6 +762,11 @@ enrichmentPlot<-function (pathway, stats,
   
   dataList<-lapply(datalist, "[[", 1)
   gseaRes<-lapply(datalist, "[[", 3)
+  dataList<-lapply(dataList, function(df){
+    df$marker<-rownames(df)
+    rownames(df)<-NULL
+    df
+  })
   mergedPlot<-do.call(rbind, plotList)
   dataList<-do.call(rbind, dataList)
 
@@ -1018,5 +1023,111 @@ plot_genes_violin<- function (cds_subset, grouping = "Cluster",
     q<-q + ylim(scale_y)
   }
   q
+}
+
+
+#' Plot heatmap of gene expression by group
+#'
+#' @description You can figure it out
+
+#' @param cds Input cell_data_set object.
+#' @import ggplot2
+#' @importFrom reshape2 melt
+#' @importFrom data.table as.data.table
+#' @importFrom dplyr group_by
+#' @export
+
+
+plot_heatmap <- function (cds, markers, sample_cell_num = NULL, group_by = "Cluster", 
+                                    show_rownames = TRUE, gene_name_size = 8, scale_max = 3, col_low = "cyan", 
+                                    col_mid = "black", col_high = "red",
+                                    scale_min = -3, minimal_cluster_fraction = NULL, return_heatmap = FALSE, cluster_row = T, cluster_col = F,
+                                    verbose = FALSE, method="ggplot", ...) 
+{
+  markers <- rev(as.character(markers))
+  if (!is.null(minimal_cluster_fraction)) {
+    cluster_cell_num <- pData(cds) %>% dplyr::mutate(index = 1:ncol(cds)) %>% 
+      dplyr::group_by(group_by) %>% dplyr::summarise(n = n())
+    valid_clusters <- as.numeric(as.matrix(cluster_cell_num[which(cluster_cell_num$n/max(cluster_cell_num$n) > 
+                                                                    minimal_cluster_fraction), 1]))
+    cds <- cds[, pData(cds)[, group_by] %in% valid_clusters]
+  }
+  if (!is.null(sample_cell_num)) {
+    if (verbose) {
+      message(paste0("Downsampling ", sample_cell_num, 
+                     " for plotting efficiency ..."))
+    }
+    cds <- cds[, sample(1:ncol(cds), sample_cell_num)]
+  }
+  if (ncol(cds) > 50000 & is.null(sample_cell_num)) {
+    if (verbose) {
+      message(paste0("Cell number is larger 50000. Downsampling 1000 cells for plotting efficiency ..."))
+    }
+    sample_cell_num <- 1000
+    cds <- cds[, sample(1:ncol(cds), sample_cell_num)]
+  }
+  gene_ids <- row.names(cds)[match(markers, fData(cds)$gene_short_name)]
+  norm_mat <- monocle3:::normalize_expr_data(cds[gene_ids,], norm_method = "log")
+  norm_mat <- norm_mat[gene_ids, ]
+  norm_mat <- Matrix::t(scale(Matrix::t(norm_mat), center = TRUE))
+  norm_mat <- norm_mat[is.na(row.names(norm_mat)) == FALSE, 
+                       ]
+  norm_mat[is.nan(norm_mat)] = 0
+  norm_mat[norm_mat > scale_max] <- scale_max
+  norm_mat[norm_mat < scale_min] <- scale_min
+  cell_index <- data.table::as.data.table(pData(cds)) %>% dplyr::mutate(index = 1:ncol(cds)) %>% 
+    dplyr::arrange((!!as.symbol(group_by)))
+  norm_mat <- norm_mat[, cell_index$index]
+  #dim(norm_mat)
+  if(cluster_row){
+    row_ord <- hclust( dist(norm_mat, method = "euclidean"), method = "ward.D" )$order
+    norm_mat<-norm_mat[row_ord,]
+  }
+  if(cluster_col){
+    col_ord <- hclust( dist(t(norm_mat), method = "euclidean"), method = "ward.D" )$order
+  }
+  if(method=="return_matrix"){
+    return(norm_mat)
+  }
+  if(method=="ggplot"){
+    mlt_norm_mat <- reshape2::melt(norm_mat, stringsAsFactors=F)
+    #dim(mlt_norm_mat)
+    
+    colnames(mlt_norm_mat) <- c("Gene", "Cell", "Expression")
+    mlt_norm_mat$Cell<-as.character(mlt_norm_mat$Cell)
+    mlt_norm_mat[[group_by]]<-cell_index[[group_by]][match(mlt_norm_mat$Cell,as.character(cell_index$cell))]
+    mlt_norm_mat$Gene <- fData(cds)[as.character(mlt_norm_mat$Gene), "gene_short_name"]
+    #mlt_norm_mat$Cluster <- as.character(pData(cds)[as.character(mlt_norm_mat$Cell), 
+    #                                                group_by])
+    mlt_norm_mat <- mlt_norm_mat %>% dplyr::mutate(Cell = factor(Cell, levels = colnames(norm_mat)))
+    # if(cluster_row){
+    #   mlt_norm_mat$Gene <- factor(mlt_norm_mat$Gene, levels=levels(mlt_norm_mat$Gene)[row_ord])
+    # }
+    # if(cluster_col){
+    #   mlt_norm_mat$Cell <- factor(mlt_norm_mat$Cell, levels=levels(mlt_norm_mat$Cell)[col_ord])
+    # }
+    g <- ggplot(data = mlt_norm_mat, mapping = aes(x = Cell, 
+                                                   y = Gene, fill = Expression)) + geom_tile() + scale_fill_gradient2(high=col_high, mid=col_mid, low=col_low) + theme(axis.title.x = element_blank(), 
+                                                                                                                                                                       axis.title.y = element_blank(), axis.text.x = element_blank(), 
+                                                                                                                                                                       axis.text.y = element_text(size = gene_name_size), axis.ticks.x = element_blank(), 
+                                                                                                                                                                       axis.line = element_blank(), axis.ticks.y = element_blank())
+    g <- g + facet_grid(facets = as.formula(~group_by), drop = TRUE, space = "free", 
+                        scales = "free") + scale_x_discrete(expand = c(0, 0), 
+                                                            drop = TRUE)
+    g <- g + theme(strip.background = element_blank(), panel.spacing = unit(x = 0.1, 
+                                                                            units = "lines")) + scale_y_discrete(position = "right")
+    if (!show_rownames) {
+      g <- g + theme(axis.text.y = element_blank())
+    }
+    if (return_heatmap) {
+      return(list(norm_mat = norm_mat, g = g))
+    }
+    else {
+      return(g)
+    }
+  }
+  if(method=="pheatmap"){
+    
+  }
 }
 

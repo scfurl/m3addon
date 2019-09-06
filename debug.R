@@ -4,6 +4,7 @@ reticulate::py_config()
 library(magrittr)
 library(reticulate)
 library(Rcpp)
+library(ggplot2)
 roxygen2::roxygenize(".")
 usethis::use_build_ignore("debug.R")
 
@@ -77,3 +78,13 @@ rbenchmark::benchmark(Arma = put_option_pricer_arma(s, 60, .01, .02, 1, .05),
 
 Rcpp::sourceCpp("src/armatut.cpp")
 Rcpp::sourceCpp("src/aftut.cpp", rebuild = T)
+
+######
+
+cds <- readRDS(file.path("/Users/sfurla/Box Sync/PI_FurlanS/computation", "Analysis", "NHPTreg_mm", "cds", "4thRound", "190820_m3_CDS.RDS"))
+
+plot_cells(cds, color_cells_by = "Clust2", reduction_method = "tSNE", label_cell_groups = F)
+plot_heatmap(cds, c("FOXP3", "IL2RA"), group_by = "Clust2")
+debug(plot_heatmap)
+
+monocle3::plot_percent_cells_positive(cds[fData(cds)$gene_short_name %in% c("FOXP3", "IL2RA"),], group_cells_by = "Clust2")

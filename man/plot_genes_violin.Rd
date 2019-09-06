@@ -4,12 +4,12 @@
 \alias{plot_genes_violin}
 \title{Plot violin plot of gene expression by group}
 \usage{
-plot_genes_violin(cds_subset, grouping = "State", min_expr = NULL,
+plot_genes_violin(cds_subset, grouping = "Cluster", min_expr = 0.1,
   scale_y = NULL, cell_size = 0.75, nrow = NULL, ncol = 1,
-  panel_order = NULL, color_by = NULL, plot_trend = F,
-  label_by_short_name = TRUE, relative_expr = TRUE, lognorm = FALSE,
-  noise = FALSE, adjust = 1.3, scale = "width", jitter = FALSE,
-  trim = FALSE, jitter_alpha = 0.3, round = FALSE,
+  panel_order = NULL, color_by = NULL, remove_zeros = T,
+  plot_trend = F, label_by_short_name = TRUE, relative_expr = TRUE,
+  lognorm = TRUE, noise = FALSE, adjust = 2, scale = "width",
+  jitter = FALSE, trim = FALSE, jitter_alpha = 0.3, round = FALSE,
   jitterzeros = FALSE, jitter_width = 0.05, jitter_height = 0,
   box_color = "red", violin_alpha = 1, boxplot = F, bwidth = 0.3,
   bcolor = "white")
