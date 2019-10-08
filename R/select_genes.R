@@ -2,7 +2,7 @@
 plot_gene_dispersion<-function(cds){
   if(is.null(cds@int_metadata$dispersion$disp_func)){
     prd<-cds@int_metadata$dispersion
-    g<-ggplot2::ggplot(prd, ggplot2::aes(x = log_mean, y = fit)) 
+    g<-ggplot2::ggplot(prd, ggplot2::aes(x = log_mean, y = logfit)) 
     if("use_for_ordering" %in% colnames(cds@int_metadata$dispersion)){
       g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=use_for_ordering, alpha=0.4))
     }else{
@@ -10,24 +10,25 @@ plot_gene_dispersion<-function(cds){
     }
     g<-g+
       ggplot2::theme_bw() +
-      ggplot2::geom_line() +
-      ggplot2::geom_smooth(data=prd, ggplot2::aes(ymin = lci, ymax = uci), stat = "identity")
+      ggplot2::geom_line() # + 
+      #ggplot2::geom_smooth(data=prd, ggplot2::aes(ymin = lci, ymax = uci), stat = "identity")
     return(g)
   }else{
     prd<-cds@int_metadata$dispersion$disp_table
-    prd$fit<-cds@int_metadata$dispersion$disp_func(prd$mu)
+    prd$fit<-log(cds@int_metadata$dispersion$disp_func(prd$mu))
     prd$mu<-log(prd$mu)
     prd$disp<-log(prd$disp)
     colnames(prd)<-c("gene_id", "log_mean", "log_dispersion", "fit")
     g<-ggplot2::ggplot(prd, ggplot2::aes(x = log_mean, y = fit)) 
-    if("use_for_ordering" %in% colnames(cds@int_metadata$dispersion)){
+    if("use_for_ordering" %in% names(cds@int_metadata$dispersion)){
+      prd$use_for_ordering = cds@int_metadata$dispersion$use_for_ordering
       g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=use_for_ordering, alpha=0.4))
     }else{
       g <- g + ggplot2::geom_point(data=prd, ggplot2::aes( x=log_mean, y=log_dispersion, color="grey", alpha=0.4))
     }
     g<-g+
       ggplot2::theme_bw() +
-      ggplot2::geom_line() +
+      ggplot2::geom_line(data=prd, ggplot2::aes( x=log_mean, y=fit)) +
       ggplot2::geom_smooth(data=prd, formula = fit ~ log_mean, stat = "identity")
     return(g)
   }
@@ -62,22 +63,42 @@ plot_gene_dispersion<-function(cds){
 #' @export
 
 select_genes<-function(cds, fit_min=1, fit_max=Inf, logmean_ul=NULL, logmean_ll=NULL){
-  df<-cds@int_metadata$dispersion
-  df$ratio<-df$log_dispersion/df$fit
-  cds@int_metadata$dispersion$use_for_ordering <- df$ratio > fit_min & df$ratio < fit_max
-  if(!is.null(logmean_ll)){
-    cds@int_metadata$dispersion$use_for_ordering <- cds@int_metadata$dispersion$use_for_ordering & df$log_mean > logmean_ll
+  if(is.null(cds@int_metadata$dispersion$disp_func)){
+    df<-cds@int_metadata$dispersion
+    df$ratio<-df$log_dispersion/df$fit
+    cds@int_metadata$dispersion$use_for_ordering <- df$ratio > fit_min & df$ratio < fit_max
+    if(!is.null(logmean_ll)){
+      cds@int_metadata$dispersion$use_for_ordering <- cds@int_metadata$dispersion$use_for_ordering & df$log_mean > logmean_ll
+    }
+    if(!is.null(logmean_ul)){
+      cds@int_metadata$dispersion$use_for_ordering <- cds@int_metadata$dispersion$use_for_ordering & df$log_mean < logmean_ul
+    }
+    return(cds)
+  }else{
+    df<-cds@int_metadata$dispersion$disp_table
+    df$fit<-cds@int_metadata$dispersion$disp_func(df$mu)
+    df$ratio<-df$disp/df$fit
+    df$log_disp=log(df$disp)
+    df$log_mean<-log(df$mu)
+    cds@int_metadata$dispersion$use_for_ordering <- df$ratio > fit_min & df$ratio < fit_max
+    if(!is.null(logmean_ll)){
+      cds@int_metadata$dispersion$use_for_ordering <- cds@int_metadata$dispersion$use_for_ordering & df$log_mean > logmean_ll
+    }
+    if(!is.null(logmean_ul)){
+      cds@int_metadata$dispersion$use_for_ordering <- cds@int_metadata$dispersion$use_for_ordering & df$log_mean < logmean_ul
+    }
+    return(cds)
   }
-  if(!is.null(logmean_ul)){
-    cds@int_metadata$dispersion$use_for_ordering <- cds@int_metadata$dispersion$use_for_ordering & df$log_mean < logmean_ul
-  }
-  cds
 }
 
 
 #' @export
 get_ordering_genes<-function(cds, gene_column="id"){
-  cds@int_metadata$dispersion[[gene_column]][cds@int_metadata$dispersion$use_for_ordering]
+  if(is.null(cds@int_metadata$dispersion$disp_func)){
+    as.character(cds@int_metadata$dispersion[[gene_column]][cds@int_metadata$dispersion$use_for_ordering])
+  }else{
+    as.character(cds@int_metadata$dispersion$disp_table[[gene_column]][cds@int_metadata$dispersion$use_for_ordering])
+  }
 }
 
 #' Calculate dispersion genes in a cell_data_set object
