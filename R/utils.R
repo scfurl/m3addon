@@ -30,7 +30,7 @@ common_features <- function(cds_list){
 #' @description Just like it sounds.
 #'
 #' @param cds_list Input cell_data_set object.
-#' @importFrom Matrix .sparseDiagonal
+#' @import Matrix
 #' @export
 tf_idf_transform <- function(cds){
   idf <- log( ncol(exprs(cds)) / ( 1 + Matrix::rowSums(exprs(cds) != 0) ) )
