@@ -1,3 +1,61 @@
+#' Finds common features in a list of cds objects
+#'
+#' @description Machine learning algorithms often require features to be the same across 
+#' datasets.  Thisfunction finds common features between a list of cell data set objects and 
+#' returns a list of cds's that have the same features.  Note that this function uses rownames 
+#' of the 'fData' DataFrame to find the intersect of features common to all cds's
+#'
+#' @param cds_list Input cell_data_set object.
+#' @export
+common_features <- function(cds_list){
+  len<-length(cds_list)
+  common_features=vector()
+  for(i in 1:len){
+    if(i < 2){
+      common_features<-rownames(fData(cds_list[[i]]))
+    }else{
+      common_features<-unique(intersect(common_features, rownames(fData(cds_list[[i]]))))
+    }
+  }
+  for(i in 1:len){
+    cds_list[[i]]<-cds_list[[i]][match(common_features, rownames(cds_list[[i]])),]
+  }
+  return(cds_list)
+}
+
+
+
+#' Performs TF-IDF transformation on a cell_data_set
+#'
+#' @description Just like it sounds.
+#'
+#' @param cds_list Input cell_data_set object.
+#' @importFrom Matrix .sparseDiagonal
+#' @export
+tf_idf_transform <- function(cds){
+  idf <- log( ncol(exprs(cds)) / ( 1 + Matrix::rowSums(exprs(cds) != 0) ) )
+  idf<-.sparseDiagonal(x=idf)
+  tf_idf <- crossprod(exprs(cds), idf)
+  colnames(tf_idf) <- rownames(exprs(cds))
+  tf_idf_out<-Matrix::t(tf_idf / sqrt( Matrix::rowSums( tf_idf^2 ) ))
+  cds@assays$data$counts<-tf_idf_out
+  return(cds)
+}
+
+
+Noisify <- function(data, amount=0.0001) {
+  if (is.vector(data)) {
+    noise <- runif(length(data), -amount, amount)
+    noisified <- data + noise
+  } else {
+    length <- dim(data)[1] * dim(data)[2]
+    noise <- matrix(runif(length, -amount, amount), dim(data)[1])
+    noisified <- data + noise
+  }
+  return(noisified)
+}
+
+
 #' Detects genes above minimum threshold.
 #'
 #' @description For each gene in a cell_data_set object, detect_genes counts
