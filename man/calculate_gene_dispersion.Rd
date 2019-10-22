@@ -5,7 +5,7 @@
 \title{Calculate dispersion genes in a cell_data_set object}
 \usage{
 calculate_gene_dispersion(cds, q = 3, id_tag = "id",
-  symbol_tag = "gene_short_name")
+  symbol_tag = "gene_short_name", method, removeOutliers = T)
 }
 \arguments{
 \item{cds}{the cell_data_set upon which to perform this operation.}

@@ -9,7 +9,7 @@ plot_heatmap(cds, markers, sample_cell_num = NULL,
   scale_max = 3, col_low = "cyan", col_mid = "black",
   col_high = "red", scale_min = -3, minimal_cluster_fraction = NULL,
   return_heatmap = FALSE, cluster_row = T, cluster_col = F,
-  verbose = FALSE, method = "return_matrix", ...)
+  verbose = FALSE, method = "ggplot", ...)
 }
 \arguments{
 \item{cds}{Input cell_data_set object.}
