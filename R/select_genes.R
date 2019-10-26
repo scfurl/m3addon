@@ -2,7 +2,7 @@
 plot_gene_dispersion<-function(cds){
   if(is.null(cds@int_metadata$dispersion$disp_func)){
     prd<-cds@int_metadata$dispersion
-    g<-ggplot2::ggplot(prd, ggplot2::aes(x = log_mean, y = log_dispersion)) 
+    g<-ggplot2::ggplot(prd, ggplot2::aes(x = log_mean, y = fit)) 
     if("use_for_ordering" %in% colnames(cds@int_metadata$dispersion)){
       g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=use_for_ordering), alpha=0.4)
     }else{
