@@ -4,9 +4,9 @@ plot_gene_dispersion<-function(cds){
     prd<-cds@int_metadata$dispersion
     g<-ggplot2::ggplot(prd, ggplot2::aes(x = log_mean, y = log_dispersion)) 
     if("use_for_ordering" %in% colnames(cds@int_metadata$dispersion)){
-      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=use_for_ordering, alpha=0.4))
+      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=use_for_ordering), alpha=0.4)
     }else{
-      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes( x=log_mean, y=log_dispersion, color="grey", alpha=0.4))
+      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes( x=log_mean, y=log_dispersion, color="grey"), alpha=0.4)
     }
     g<-g+
       ggplot2::theme_bw() +
