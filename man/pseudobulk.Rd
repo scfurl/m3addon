@@ -2,7 +2,7 @@
 % Please edit documentation in R/pseudobulking.R
 \name{pseudobulk}
 \alias{pseudobulk}
-\title{Pseudobulh=k}
+\title{Pseudobulk}
 \usage{
 pseudobulk(cds, by, n = 10)
 }
