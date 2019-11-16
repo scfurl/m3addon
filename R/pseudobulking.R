@@ -1,10 +1,6 @@
 #' Removes data (collapses) with duplicated names
 #'
-#' @description Geneset scores are a score calculated for each single cell derived from more than one gene.  
-#' In this implementation, the sum of the size-factor corrected, log-normalized gene expression for a give set of genes
-#' is performed
-#' 
-
+#' @description Will collapse a cds based on duplicated labels that have the greatest variance
 #' @param cds Input cell_data_set object.
 #' @param fdata_col the non-unique labels (i.e. Gene Symbol)
 #' @param id the unique labels (i.e ENSEMBL)

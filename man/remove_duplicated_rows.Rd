@@ -19,7 +19,5 @@ cds collapsed to only include the duplicated fdata_col label with the highest va
 to all other identical fdata_col labels
 }
 \description{
-Geneset scores are a score calculated for each single cell derived from more than one gene.  
-In this implementation, the sum of the size-factor corrected, log-normalized gene expression for a give set of genes
-is performed
+Will collapse a cds based on duplicated labels that have the greatest variance
 }
