@@ -1,7 +1,23 @@
+#' Removes data (collapses) with duplicated names
+#'
+#' @description Geneset scores are a score calculated for each single cell derived from more than one gene.  
+#' In this implementation, the sum of the size-factor corrected, log-normalized gene expression for a give set of genes
+#' is performed
+#' 
+
+#' @param cds Input cell_data_set object.
+#' @param fdata_col the non-unique labels (i.e. Gene Symbol)
+#' @param id the unique labels (i.e ENSEMBL)
+#' @return cds collapsed to only include the duplicated fdata_col label with the highest varience compated
+#' to all other identical fdata_col labels
+#' @importFrom monocle3 normalized_counts
+#' @export
+#' 
+
+
 remove_duplicated_rows<-function(cds, fdata_col="gene_short_name", unique_labels="id"){
   exprMat<-normalized_counts(cds)
   rn<-mcols(cds)[[fdata_col]]
-  
   if (length(make.unique(rn)) != length(unique(rn))) {
     unique_rn<-rownames(exprMat)[!rn %in% rn[duplicated(rn)]]
     duplicated_rn<-rownames(exprMat)[rn %in% rn[duplicated(rn)]]
@@ -16,7 +32,7 @@ remove_duplicated_rows<-function(cds, fdata_col="gene_short_name", unique_labels
 }
 
 
-#' Pseudobulh=k
+#' Pseudobulk
 #'
 #' @description This function creates pseudocells comprosed of a composite of data from n cells using 
 #' an additive method.
