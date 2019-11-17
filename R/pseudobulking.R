@@ -44,6 +44,7 @@ remove_duplicated_rows<-function(cds, fdata_col="gene_short_name", unique_labels
 
 
 pseudobulk<-function(cds, by, n=10){
+  set.seed(2019)
   matlist<-lapply(levels(pData(cds)[[by]]), function(Cluster){
     datlist<-list()
     cds_ss<-cds[,pData(cds)[[by]] %in% Cluster]

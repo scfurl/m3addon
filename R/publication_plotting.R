@@ -59,7 +59,7 @@ split_plot<-function(a.gplot, widths=c(4.5/6,1.5/6)){
 #' Metastatic Tumor Ecosystems in Head and Neck Cancer. Cell 171, 1611.e1–1611.e24 (2017).
 
 
-red_dim_plot<-function(plot, method="UMAP", size=20, ICON_DIR=system.file("icons", "m3addon"), correction_x=0, correction_y=0){
+red_dim_plot<-function(plot, method="UMAP", size=20, ICON_DIR=system.file("icons",package= "m3addon"), correction_x=0, correction_y=0){
   xs<-segment(layer_scales(plot)$x$range$range)
   ys<-segment(layer_scales(plot)$y$range$range)
   if(!is.null(plot$layers$title)){
