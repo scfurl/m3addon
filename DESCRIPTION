@@ -10,12 +10,20 @@ License: What license is it under?
 Imports: 
   Rcpp (>= 1.0.0),
   monocle3 (>= 0.1.0),
+  Matrix (>= 1.0),
   ggplot2 (>= 3.0.0),
   h5 (>= 0.9.9),
   reticulate (>= 1.12),
   Hmisc (>= 4.0),
   fgsea (>= 1.0),
-  scran (>= 1.1)
+  scran (>= 1.1),
+  ROCR (>= 1.0),
+  S4Vectors(>= 0.2),
+  igraph (>= 1.2),
+  grid (>= 3.0),
+  gridExtra (>= 2.0),
+  matrixStats (>= 0.5),
+  reshape2 (>= 1.3)
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.1.1
 Encoding: UTF-8
