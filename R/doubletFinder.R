@@ -10,6 +10,9 @@
 #' @param cds Input cell_data_set object.
 #' @param PCs	Number of statistically-significant principal components (e.g., as estimated from PC 
 #' elbow plot)
+#' @param ...  arguments passed to 1)  \code{calculate_gene_dispersion} and 2) \code{select_genes}: 
+#' note that default for top_n passsed to \code{select_genes} in this context is 2000 features.  See specific function documentation for further information
+#' on acceptable arguments to be passed these functions.
 #' @param pN	The number of generated artificial doublets, expressed as a proportion of the merged 
 #' real-artificial data. Default is set to 0.25, based on observation that DoubletFinder performance is
 #'  largely pN-invariant (see McGinnis, Murrow and Gartner 2019, Cell Systems).
@@ -19,6 +22,9 @@
 #' @param nExp The total number of doublet predictions produced. This value can best be estimated 
 #' from cell loading densities into the 10X/Drop-Seq device, and adjusted according to the estimated 
 #' proportion of homotypic doublets.
+#' @param genes if "all", use all genes; if "recalc", recalculate ordering genes using \code{calculate_gene_dispersion} and 
+#' \code{select_genes}, passing arguments to each of these functions using ....; if "same" use ordering genes 
+#' specified in cds; or a vector of ordering genes to be used.
 #' @param reuse.pANN Metadata column name for previously-generated pANN results. Argument should be set to 
 #' FALSE (default) for initial DoubletFinder runs. Enables fast adjusting of doublet predictions for 
 #' different nExp.
@@ -27,13 +33,43 @@
 #' @export
 
 
-doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("all", "same", "recalculate")) {
-    ## Make merged real-artifical data
+doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same", "all", "recalc"), ...) {
+    dots <- list(...)
+    sg_args <-c("logmean_ul", "logmean_ll", "top_n", "fit_min", "fit_max")
+    cd_args<-c("id", "symbol_tag","method", "remove_outliers", "q")
+    #gather relevant args
+    rel_args<-dots[names(dots) %in% c(sg_args, cd_args)]
+    if(!"top_n" %in% names(rel_args)){
+      rel_args<-c(list(top_n=2000), rel_args)
+    }
+    print(rel_args)
+    if(length(genes)>1 & all(genes %in% c("same", "all", "recalc"))){
+      genes <- "same"
+    }
+    if(length(genes)==1 & genes %in% c("same", "all", "recalc")){
+      if(genes=="all") {
+        message("Using all features")
+        ord_genes <- rownames(fData(cds))
+      }
+      if(genes=="recalc"){
+        message("Recalculating ordering features using the following arguments:\nCalculate Dispersion:\n")
+        print(rel_args[names(rel_args) %in% cd_args])
+        message("\nSelect Genes:\n")
+        print(rel_args[names(rel_args) %in% sg_args])
+        rel_args<-c(list(cds=cds), rel_args)
+        cds<-do.call(calculate_gene_dispersion, rel_args[names(rel_args) %in% c("cds", cd_args)])
+        cds<-do.call(select_genes, rel_args[names(rel_args) %in% c("cds", sg_args)])
+      }
+      if(genes=="same"){
+        message("Using existing ordering features")
+        ord_genes<-get_ordering_genes(cds)
+      }
+    }
     real.cells <- rownames(cds@colData)
     data <- exprs(cds)[, real.cells]
     n_real.cells <- length(real.cells)
     n_doublets <- round(n_real.cells/(1 - pN) - n_real.cells)
-    print(paste("Creating",n_doublets,"artificial doublets...",sep=" "))
+    message(paste("Creating",n_doublets,"artificial doublets...",sep=" "))
     real.cells1 <- sample(real.cells, n_doublets, replace = TRUE)
     real.cells2 <- sample(real.cells, n_doublets, replace = TRUE)
     doublets <- (data[, real.cells1] + data[, real.cells2])/2
@@ -44,27 +80,21 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("all",
     orig.commands <- NULL
     
     ## Pre-process cdsrat object
-    if (sct == FALSE) {
-      print("Creating Monocle3 object with doublets...")
-      cds_wdoublets <- new_cell_data_set(data_wdoublets, gene_metadata = mcols(cds))
-      print("Running PCA...")
-      if(genes[1]=="all"){
-        cds_wdoublets <- preprocess_cds(cds_wdoublets, num_dim = length(PCs), verbose = T)
-      }else{
-        cds_wdoublets <- preprocess_cds(cds_wdoublets, num_dim = length(PCs), verbose = T, genes=genes)
-      }
-      pca.coord <- cds_wdoublets@reducedDims$PCA[ , PCs]
-      cell.names <- rownames(colData(cds_wdoublets))
-      nCells <- length(cell.names)
-      rm(cds_wdoublets); gc() # Free up memory
-    }
+    print("Creating Monocle3 object with doublets...")
+    cds_wdoublets <- new_cell_data_set(data_wdoublets, gene_metadata = mcols(cds))
+    message("Running PCA...")
+    cds_wdoublets <- preprocess_cds(cds_wdoublets, num_dim = length(PCs), verbose = T, genes=ord_genes)
+    pca.coord <- cds_wdoublets@reducedDims$PCA[ , PCs]
+    cell.names <- rownames(colData(cds_wdoublets))
+    nCells <- length(cell.names)
+    rm(cds_wdoublets); gc() # Free up memory
     
     ## Compute PC distance matrix
-    print("Calculating PC distance matrix...")
+    message("Calculating PC distance matrix...")
     dist.mat <- rdist(pca.coord)
     
     ## Compute pANN
-    print("Computing pANN...")
+    message("Computing pANN...")
     pANN <- as.data.frame(matrix(0L, nrow = n_real.cells, ncol = 1))
     rownames(pANN) <- real.cells
     colnames(pANN) <- "pANN"
@@ -76,7 +106,7 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("all",
       pANN$pANN[i] <- length(which(neighbors > n_real.cells))/k
     }
 
-    print("Classifying doublets..")
+    message("Classifying doublets..")
     classifications <- rep("Singlet",n_real.cells)
     classifications[order(pANN$pANN[1:n_real.cells], decreasing=TRUE)[1:nExp]] <- "Doublet"
     colData(cds)[, paste("pANN",pN,pK,nExp,sep="_")] <- pANN[rownames(colData(cds)), 1]
@@ -170,7 +200,7 @@ parallel_paramSweep_v3 <- function(n, n.real.cells, real.cells, pK, pN, data, or
   list.ind = 0
   
   ## Make merged real-artifical data
-  print(paste("Creating artificial doublets for pN = ", pN[n]*100,"%",sep=""))
+  message(paste("Creating artificial doublets for pN = ", pN[n]*100,"%",sep=""))
   n_doublets <- round(n.real.cells/(1 - pN[n]) - n.real.cells)
   real.cells1 <- sample(real.cells, n_doublets, replace = TRUE)
   real.cells2 <- sample(real.cells, n_doublets, replace = TRUE)
@@ -178,21 +208,21 @@ parallel_paramSweep_v3 <- function(n, n.real.cells, real.cells, pK, pN, data, or
   colnames(doublets) <- paste("X", 1:n_doublets, sep = "")
   data_wdoublets <- cbind(data, doublets)
   
-  print("Creating Monocle3 object...")
+  message("Creating Monocle3 object...")
   cds_wdoublets <- new_cell_data_set(data_wdoublets, gene_metadata = mcols(cds))
   
   ## Compute PC distance matrix
-  print("Running PCA...")
+  message("Running PCA...")
   if(genes[1]=="all"){
     cds_wdoublets <- preprocess_cds(cds_wdoublets, num_dim = length(PCs), verbose = T)
-    print("Using all features")
+    message("Using all features")
   }else{
     cds_wdoublets <- preprocess_cds(cds_wdoublets, num_dim = length(PCs), verbose = T, use_genes = genes)
-    print(paste0("Using ", length(genes), " features"))
+    message(paste0("Using ", length(genes), " features"))
   }
   cell.names <- rownames(colData(cds_wdoublets))
   nCells <- length(cell.names)
-  print("Calculating PC distance matrix...")
+  message("Calculating PC distance matrix...")
   nCells <- nrow(colData(cds_wdoublets))
   pca.coord <- cds_wdoublets@reducedDims$PCA[ , PCs]
   rm(cds_wdoublets)
@@ -200,7 +230,7 @@ parallel_paramSweep_v3 <- function(n, n.real.cells, real.cells, pK, pN, data, or
   dist.mat <- rdist(pca.coord)[,1:n.real.cells]
   
   ## Pre-order PC distance matrix prior to iterating across pK for pANN computations
-  print("Defining neighborhoods...")
+  message("Defining neighborhoods...")
   for (i in 1:n.real.cells) {
     dist.mat[,i] <- order(dist.mat[,i])
   }
@@ -210,7 +240,7 @@ parallel_paramSweep_v3 <- function(n, n.real.cells, real.cells, pK, pN, data, or
   dist.mat <- dist.mat[1:ind, ]
   
   ## Compute pANN across pK sweep
-  print("Computing pANN across all pK...")
+  message("Computing pANN across all pK...")
   for (k in 1:length(pK)) {
     print(paste("pK = ", pK[k], "...", sep = ""))
     pk.temp <- round(nCells * pK[k])

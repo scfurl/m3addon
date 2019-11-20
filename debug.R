@@ -95,3 +95,8 @@ plot_heatmap(cds, c("FOXP3", "IL2RA"), group_by = "Clust2")
 debug(plot_heatmap)
 
 monocle3::plot_percent_cells_positive(cds[fData(cds)$gene_short_name %in% c("FOXP3", "IL2RA"),], group_cells_by = "Clust2")
+
+debug(doubletFinder_v3)
+
+t<-doubletFinder_v3(cds, PCs=1:25, genes = "recalc")
+
