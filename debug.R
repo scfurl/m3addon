@@ -82,6 +82,13 @@ Rcpp::sourceCpp("src/aftut.cpp", rebuild = T)
 ######
 
 cds <- readRDS(file.path("/Users/sfurla/Box Sync/PI_FurlanS/computation", "Analysis", "NHPTreg_mm", "cds", "4thRound", "190820_m3_CDS.RDS"))
+cds<-estimate_size_factors(cds)
+cds<-detect_genes(cds)
+cds<-calculate_gene_dispersion(cds, method = "m3addon")
+plot_gene_dispersion(cds)
+cds<-select_genes(cds, top_n = 2000)
+plot_gene_dispersion(cds)
+get_ordering_genes(cds)
 
 plot_cells(cds, color_cells_by = "Clust2", reduction_method = "tSNE", label_cell_groups = F)
 plot_heatmap(cds, c("FOXP3", "IL2RA"), group_by = "Clust2")

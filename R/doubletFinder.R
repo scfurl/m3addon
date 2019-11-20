@@ -27,18 +27,7 @@
 #' @export
 
 
-doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, reuse.pANN = FALSE, sct = FALSE, genes="all") {
-  
-  ## Generate new list of doublet classificatons from existing pANN vector to save time
-  if (reuse.pANN != FALSE ) {
-    pANN.old <- cds@meta.data[ , reuse.pANN]
-    classifications <- rep("Singlet", length(pANN.old))
-    classifications[order(pANN.old, decreasing=TRUE)[1:nExp]] <- "Doublet"
-    cds@meta.data[, paste("DF.classifications",pN,pK,nExp,sep="_")] <- classifications
-    return(cds)
-  }
-  
-  if (reuse.pANN == FALSE) {
+doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("all", "same", "recalculate")) {
     ## Make merged real-artifical data
     real.cells <- rownames(cds@colData)
     data <- exprs(cds)[, real.cells]
@@ -56,38 +45,8 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, reuse.pANN = F
     
     ## Pre-process cdsrat object
     if (sct == FALSE) {
-      print("Creating Monocle3 object...")
+      print("Creating Monocle3 object with doublets...")
       cds_wdoublets <- new_cell_data_set(data_wdoublets, gene_metadata = mcols(cds))
-      
-      print("Normalizing Monocle3 object...")
-      # cds_wdoublets <- NormalizeData(cds_wdoublets,
-      #                                normalization.method = orig.commands$NormalizeData.RNA@params$normalization.method,
-      #                                scale.factor = orig.commands$NormalizeData.RNA@params$scale.factor,
-      #                                margin = orig.commands$NormalizeData.RNA@params$margin)
-      # 
-      # print("Finding variable genes...")
-      # cds_wdoublets <- FindVariableFeatures(cds_wdoublets,
-      #                                       selection.method = orig.commands$FindVariableFeatures.RNA$selection.method,
-      #                                       loess.span = orig.commands$FindVariableFeatures.RNA$loess.span,
-      #                                       clip.max = orig.commands$FindVariableFeatures.RNA$clip.max,
-      #                                       mean.function = orig.commands$FindVariableFeatures.RNA$mean.function,
-      #                                       dispersion.function = orig.commands$FindVariableFeatures.RNA$dispersion.function,
-      #                                       num.bin = orig.commands$FindVariableFeatures.RNA$num.bin,
-      #                                       binning.method = orig.commands$FindVariableFeatures.RNA$binning.method,
-      #                                       nfeatures = orig.commands$FindVariableFeatures.RNA$nfeatures,
-      #                                       mean.cutoff = orig.commands$FindVariableFeatures.RNA$mean.cutoff,
-      #                                       dispersion.cutoff = orig.commands$FindVariableFeatures.RNA$dispersion.cutoff)
-      # 
-      # print("Scaling data...")
-      # cds_wdoublets <- ScaleData(cds_wdoublets,
-      #                            features = orig.commands$ScaleData.RNA$features,
-      #                            model.use = orig.commands$ScaleData.RNA$model.use,
-      #                            do.scale = orig.commands$ScaleData.RNA$do.scale,
-      #                            do.center = orig.commands$ScaleData.RNA$do.center,
-      #                            scale.max = orig.commands$ScaleData.RNA$scale.max,
-      #                            block.size = orig.commands$ScaleData.RNA$block.size,
-      #                            min.cells.to.block = orig.commands$ScaleData.RNA$min.cells.to.block)
-      # 
       print("Running PCA...")
       if(genes[1]=="all"){
         cds_wdoublets <- preprocess_cds(cds_wdoublets, num_dim = length(PCs), verbose = T)
@@ -116,15 +75,14 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, reuse.pANN = F
       neighbor.names <- rownames(dist.mat)[neighbors]
       pANN$pANN[i] <- length(which(neighbors > n_real.cells))/k
     }
-  }
-    
+
     print("Classifying doublets..")
     classifications <- rep("Singlet",n_real.cells)
     classifications[order(pANN$pANN[1:n_real.cells], decreasing=TRUE)[1:nExp]] <- "Doublet"
     colData(cds)[, paste("pANN",pN,pK,nExp,sep="_")] <- pANN[rownames(colData(cds)), 1]
     colData(cds)[, paste("DF.classifications",pN,pK,nExp,sep="_")] <- classifications
     return(cds)
-  }
+}
   
   
   #' @export
