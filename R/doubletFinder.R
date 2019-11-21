@@ -50,6 +50,7 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
       if(genes=="all") {
         message("Using all features")
         ord_genes <- rownames(fData(cds))
+        og_done <-TRUE
       }
       if(genes=="recalc"){
         message("Recalculating ordering features using the following arguments:\nCalculate Dispersion:\n")
@@ -59,10 +60,13 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
         rel_args<-c(list(cds=cds), rel_args)
         cds<-do.call(calculate_gene_dispersion, rel_args[names(rel_args) %in% c("cds", cd_args)])
         cds<-do.call(select_genes, rel_args[names(rel_args) %in% c("cds", sg_args)])
+        ord_genes<-get_ordering_genes(cds)
+        og_done <-TRUE
       }
       if(genes=="same"){
         message("Using existing ordering features")
         ord_genes<-get_ordering_genes(cds)
+        og_done <-TRUE
       }
     }
     if(length(genes)>1 & all(genes %in% rownames(exprs(cds)))){
