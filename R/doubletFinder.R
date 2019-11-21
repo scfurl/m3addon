@@ -35,6 +35,7 @@
 
 doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same", "all", "recalc"), ...) {
     dots <- list(...)
+    og_done<-FALSE
     sg_args <-c("logmean_ul", "logmean_ll", "top_n", "fit_min", "fit_max")
     cd_args<-c("id", "symbol_tag","method", "remove_outliers", "q")
     #gather relevant args
@@ -42,7 +43,6 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
     if(!"top_n" %in% names(rel_args)){
       rel_args<-c(list(top_n=2000), rel_args)
     }
-    print(rel_args)
     if(length(genes)>1 & all(genes %in% c("same", "all", "recalc"))){
       genes <- "same"
     }
@@ -138,6 +138,7 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
     pK <- pK[which(pK.test >= 1)]
     
     ##get ordering genes
+    og_done<-FALSE
     sweep.res.list = list()
     list.ind = 0
     dots <- list(...)
@@ -148,7 +149,6 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
     if(!"top_n" %in% names(rel_args)){
       rel_args<-c(list(top_n=2000), rel_args)
     }
-    print(rel_args)
     if(length(genes)>1 & all(genes %in% c("same", "all", "recalc"))){
       genes <- "same"
     }
