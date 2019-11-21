@@ -65,6 +65,12 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
         ord_genes<-get_ordering_genes(cds)
       }
     }
+    if(length(genes)>1 & all(genes %in% rownames(exps(cds)))){
+      ord_genes<-genes
+      message("Using supplied ordering genes")
+    }else{
+      stop("Genes not found in cds; they must be rownames of exprs(cds)")
+    }
     real.cells <- rownames(cds@colData)
     data <- exprs(cds)[, real.cells]
     n_real.cells <- length(real.cells)
@@ -76,11 +82,8 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
     colnames(doublets) <- paste("X", 1:n_doublets, sep = "")
     data_wdoublets <- cbind(data, doublets)
     
-    ## Store important pre-processing information
-    orig.commands <- NULL
-    
-    ## Pre-process cdsrat object
-    print("Creating Monocle3 object with doublets...")
+    ## Pre-process cds object
+    message("Creating Monocle3 object with doublets...")
     cds_wdoublets <- new_cell_data_set(data_wdoublets, gene_metadata = mcols(cds))
     message("Running PCA...")
     cds_wdoublets <- preprocess_cds(cds_wdoublets, num_dim = length(PCs), verbose = T, genes=ord_genes)
@@ -115,8 +118,10 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
 }
   
   
+  #' @importFrom pbmcapply pbmclapply
   #' @export
-  paramSweep_v3 <- function(cds, PCs=1:10, sct = FALSE, num.cores=detectCores()/2, genes="all") {
+  #' 
+  paramSweep_v3 <- function(cds, PCs=1:10, sct = FALSE, num.cores=detectCores()/2, genes=c("same", "all", "recalc"), ...) {
     ## Set pN-pK param sweep ranges
     pK <- c(0.0005, 0.001, 0.005, seq(0.01,0.5,by=0.01))
     pN <- seq(0.05,0.3,by=0.05)
@@ -126,8 +131,46 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
     pK.test <- round(pK*min.cells)
     pK <- pK[which(pK.test >= 1)]
     
-    ## Extract pre-processing parameters from original data analysis workflow
-    orig.commands <- NULL
+    ##get ordering genes
+    sweep.res.list = list()
+    list.ind = 0
+    dots <- list(...)
+    sg_args <-c("logmean_ul", "logmean_ll", "top_n", "fit_min", "fit_max")
+    cd_args<-c("id", "symbol_tag","method", "remove_outliers", "q")
+    #gather relevant args
+    rel_args<-dots[names(dots) %in% c(sg_args, cd_args)]
+    if(!"top_n" %in% names(rel_args)){
+      rel_args<-c(list(top_n=2000), rel_args)
+    }
+    print(rel_args)
+    if(length(genes)>1 & all(genes %in% c("same", "all", "recalc"))){
+      genes <- "same"
+    }
+    if(length(genes)==1 & genes %in% c("same", "all", "recalc")){
+      if(genes=="all") {
+        message("Using all features")
+        ord_genes <- rownames(fData(cds))
+      }
+      if(genes=="recalc"){
+        message("Recalculating ordering features using the following arguments:\nCalculate Dispersion:\n")
+        print(rel_args[names(rel_args) %in% cd_args])
+        message("\nSelect Genes:\n")
+        print(rel_args[names(rel_args) %in% sg_args])
+        rel_args<-c(list(cds=cds), rel_args)
+        cds<-do.call(calculate_gene_dispersion, rel_args[names(rel_args) %in% c("cds", cd_args)])
+        cds<-do.call(select_genes, rel_args[names(rel_args) %in% c("cds", sg_args)])
+      }
+      if(genes=="same"){
+        message("Using existing ordering features")
+        ord_genes<-get_ordering_genes(cds)
+      }
+    }
+    if(length(genes)>1 & all(genes %in% rownames(exps(cds)))){
+      ord_genes<-genes
+      message("Using supplied ordering genes")
+    }else{
+      stop("Genes not found in cds; they must be rownames of exprs(cds)")
+    }
     
     ## Down-sample cells to 10000 (when applicable) for computational effiency
     if (nrow(colData(cds)) > 10000) {
@@ -142,11 +185,12 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
       n.real.cells <- ncol(data)
     }
     
+    data<-data[rownames(data) %in% ord_genes,]
     ## Iterate through pN, computing pANN vectors at varying pK
     #no_cores <- detectCores()-1
     if(num.cores>1){
-      require(parallel)
-      cl <- makeCluster(num.cores)
+      #require(parallel)
+      #cl <- makeCluster(num.cores)
       output2 <- pbmclapply(as.list(1:length(pN)),
                           FUN = parallel_paramSweep_v3,
                           n.real.cells,
@@ -154,10 +198,9 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
                           pK,
                           pN,
                           data,
-                          orig.commands,
                           PCs,
                           sct,mc.cores=num.cores, genes=genes)
-      stopCluster(cl)
+      #stopCluster(cl)
     }else{
       output2 <- lapply(as.list(1:length(pN)),
                         FUN = parallel_paramSweep_v3,
@@ -166,7 +209,6 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
                         pK,
                         pN,
                         data,
-                        orig.commands,
                         PCs,
                         sct, genes=genes)
     }
@@ -192,14 +234,11 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
   }
 
 #' @importFrom fields rdist
+#' @importFrom S4Vectors DataFrame
 #' @export
 #' 
-parallel_paramSweep_v3 <- function(n, n.real.cells, real.cells, pK, pN, data, orig.commands, PCs, sct, genes="all")  {
-  
-  sweep.res.list = list()
-  list.ind = 0
-  
-  ## Make merged real-artifical data
+parallel_paramSweep_v3 <- function(n, n.real.cells, real.cells, pK, pN, data, PCs)  {
+    ## Make merged real-artifical data
   message(paste("Creating artificial doublets for pN = ", pN[n]*100,"%",sep=""))
   n_doublets <- round(n.real.cells/(1 - pN[n]) - n.real.cells)
   real.cells1 <- sample(real.cells, n_doublets, replace = TRUE)
@@ -208,18 +247,12 @@ parallel_paramSweep_v3 <- function(n, n.real.cells, real.cells, pK, pN, data, or
   colnames(doublets) <- paste("X", 1:n_doublets, sep = "")
   data_wdoublets <- cbind(data, doublets)
   
-  message("Creating Monocle3 object...")
-  cds_wdoublets <- new_cell_data_set(data_wdoublets, gene_metadata = mcols(cds))
-  
-  ## Compute PC distance matrix
+  ## Pre-process cds object
+  message("Creating Monocle3 object with doublets...")
+  cds_wdoublets <- new_cell_data_set(data_wdoublets, gene_metadata = DataFrame(gene_short_name=rownames(data), row.names = rownames(data)))
   message("Running PCA...")
-  if(genes[1]=="all"){
-    cds_wdoublets <- preprocess_cds(cds_wdoublets, num_dim = length(PCs), verbose = T)
-    message("Using all features")
-  }else{
-    cds_wdoublets <- preprocess_cds(cds_wdoublets, num_dim = length(PCs), verbose = T, use_genes = genes)
-    message(paste0("Using ", length(genes), " features"))
-  }
+  cds_wdoublets <- preprocess_cds(cds_wdoublets, num_dim = length(PCs), verbose = T)
+  pca.coord <- cds_wdoublets@reducedDims$PCA[ , PCs]
   cell.names <- rownames(colData(cds_wdoublets))
   nCells <- length(cell.names)
   message("Calculating PC distance matrix...")
@@ -257,7 +290,6 @@ parallel_paramSweep_v3 <- function(n, n.real.cells, real.cells, pK, pN, data, or
     sweep.res.list[[list.ind]] <- pANN
     
   }
-  
   return(sweep.res.list)
 }
 
