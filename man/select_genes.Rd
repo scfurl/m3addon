@@ -4,8 +4,8 @@
 \alias{select_genes}
 \title{Select genes in a cell_data_set for dimensionality reduction}
 \usage{
-select_genes(cds, fit_min = 1, fit_max = Inf, logmean_ul = NULL,
-  logmean_ll = NULL)
+select_genes(cds, fit_min = 1, fit_max = Inf, logmean_ul = Inf,
+  logmean_ll = -Inf, top_n = NULL)
 }
 \arguments{
 \item{cds}{the cell_data_set upon which to perform this operation.}
@@ -17,6 +17,9 @@ select_genes(cds, fit_min = 1, fit_max = Inf, logmean_ul = NULL,
 \item{logmean_ul}{the maximum multiple of the dispersion fit calculation; default = Inf}
 
 \item{logmean_ll}{the maximum multiple of the dispersion fit calculation; default = Inf}
+
+\item{top}{top_n if specified, will override the fit_min and fit_max to select the top n most 
+variant features.  logmena_ul and logmean_ll can still be used.}
 }
 \value{
 an updated cell_data_set object with selected features

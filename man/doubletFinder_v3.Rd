@@ -24,6 +24,14 @@ pK values can be determined using mean-variance-normalized bimodality coefficien
 from cell loading densities into the 10X/Drop-Seq device, and adjusted according to the estimated 
 proportion of homotypic doublets.}
 
+\item{genes}{if "all", use all genes; if "recalc", recalculate ordering genes using \code{calculate_gene_dispersion} and 
+\code{select_genes}, passing arguments to each of these functions using ....; if "same" use ordering genes 
+specified in cds; or a vector of ordering genes to be used.}
+
+\item{...}{arguments passed to 1)  \code{calculate_gene_dispersion} and 2) \code{select_genes}: 
+note that default for top_n passsed to \code{select_genes} in this context is 2000 features.  See specific function documentation for further information
+on acceptable arguments to be passed these functions.}
+
 \item{reuse.pANN}{Metadata column name for previously-generated pANN results. Argument should be set to 
 FALSE (default) for initial DoubletFinder runs. Enables fast adjusting of doublet predictions for 
 different nExp.}
