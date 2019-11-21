@@ -245,7 +245,9 @@ doubletFinder_v3 <- function(cds, PCs=1:100, pN = 0.25, pK, nExp, genes=c("same"
 #' @export
 #' 
 parallel_paramSweep_v3 <- function(n, n.real.cells, real.cells, pK, pN, data, PCs)  {
-    ## Make merged real-artifical data
+  sweep.res.list = list()
+  list.ind = 0
+  ## Make merged real-artifical data
   message(paste("Creating artificial doublets for pN = ", pN[n]*100,"%",sep=""))
   n_doublets <- round(n.real.cells/(1 - pN[n]) - n.real.cells)
   real.cells1 <- sample(real.cells, n_doublets, replace = TRUE)
