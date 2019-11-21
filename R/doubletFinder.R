@@ -305,6 +305,8 @@ parallel_paramSweep_v3 <- function(n, n.real.cells, real.cells, pK, pN, data, PC
 
 #' @importFrom ROCR prediction
 #' @importFrom ROCR performance
+#' @importFrom modes bimodality_coefficient
+#' @importFrom KernSmooth bkde
 #' @export
 #' 
 summarizeSweep <- function(sweep.list, GT = FALSE, GT.calls = NULL) {
