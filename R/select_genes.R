@@ -103,6 +103,26 @@ get_ordering_genes<-function(cds, gene_column="id"){
   }
 }
 
+
+
+#' @export
+set_ordering_genes<-function(cds, genes, gene_column="id", unique_column="id"){
+  if(is.null(cds@int_metadata$dispersion$disp_func)){
+    if(gene_column %in% colnames(cds@int_metadata$dispersion)){
+      cds@int_metadata$dispersion$use_for_ordering = cds@int_metadata$dispersion[[gene_column]] %in% genes
+    }
+    if(length(which(cds@int_metadata$dispersion$use_for_ordering))<1) warning("No ordering genes found")
+  }else{
+    if(gene_column %in% colnames(cds@int_metadata$dispersion$disp_table)){
+      cds@int_metadata$dispersion$use_for_ordering = cds@int_metadata$dispersion$disp_table[[gene_column]] %in% genes
+    }else{
+      found<-rownames(fData(cds))[fData(cds)[[gene_column]] %in% genes]
+      cds@int_metadata$dispersion$use_for_ordering = cds@int_metadata$dispersion$disp_table[[unique_column]] %in% found
+    }
+  }
+  cds
+}
+
 #' Calculate dispersion genes in a cell_data_set object
 #'
 #' @description Monocle3 aims to learn how cells transition through a
@@ -186,32 +206,58 @@ calculate_gene_dispersion<-function(cds, q=3, id_tag="id", symbol_tag="gene_shor
   }
 }
 
-calc_dispersion_m2<-function (cds, expressionFamily, min_cells_detected=1, min_exprs = 1, id_tag="id") 
+
+#' @export
+#' @import monocle3
+#' @importFrom Matrix rowSums
+#' @importFrom DelayedMatrixStats rowMeans2
+#' @importFrom DelayedMatrixStats rowVars
+#' 
+
+calc_dispersion_m2<-function (obj, expressionFamily, min_cells_detected=1, min_exprs = 1, id_tag="id") 
 {
-  rounded <- round(exprs(cds))
-  nzGenes <- Matrix::rowSums(rounded > min_exprs)
-  nzGenes <- names(nzGenes[nzGenes > min_cells_detected])
-  x <- DelayedArray(t(t(rounded[nzGenes, ])/pData(cds[nzGenes, 
+  if(class(obj)=="cell_data_set"){
+    rounded <- round(exprs(cds))
+    nzGenes <- rowSums(rounded > min_exprs)
+    nzGenes <- names(nzGenes[nzGenes > min_cells_detected])
+    x <- DelayedArray(t(t(rounded[nzGenes, ])/pData(cds[nzGenes, 
                                                       ])$Size_Factor))
-  xim <- mean(1/pData(cds[nzGenes, ])$Size_Factor)
-  if (class(exprs(cds)) %in% c("dgCMatrix", "dgTMatrix")) {
-    f_expression_mean <- as(DelayedMatrixStats::rowMeans2(x), 
-                            "sparseVector")
-  }else {
-    f_expression_mean <- DelayedMatrixStats::rowMeans2(x)
+    xim <- mean(1/pData(cds[nzGenes, ])$Size_Factor)
+    if (class(exprs(cds)) %in% c("dgCMatrix", "dgTMatrix")) {
+      f_expression_mean <- as(DelayedMatrixStats::rowMeans2(x), 
+                              "sparseVector")
+    }else {
+      f_expression_mean <- DelayedMatrixStats::rowMeans2(x)
+    }
+    f_expression_var <- DelayedMatrixStats::rowVars(x)
+    disp_guess_meth_moments <- f_expression_var - xim * f_expression_mean
+    disp_guess_meth_moments <- disp_guess_meth_moments/(f_expression_mean^2)
+    res <- data.frame(mu = as.vector(f_expression_mean), disp = as.vector(disp_guess_meth_moments))
+    res[res$mu == 0]$mu = NA
+    res[res$mu == 0]$disp = NA
+    res$disp[res$disp < 0] <- 0
+    res[[id_tag]] <- row.names(fData(cds[nzGenes, ]))
+    return(res)
   }
-  f_expression_var <- DelayedMatrixStats::rowVars(x)
+  
+  if(class(obj) %in% "matrix"){
+    sf<-DESeq2::estimateSizeFactorsForMatrix(obj)
+    x <-DelayedArray(t(t(obj)/sf))
+    f_expression_mean <- DelayedMatrixStats::rowMeans2(obj)
+    f_expression_var <- DelayedMatrixStats::rowVars(obj)
+    xim <- mean(1/sf)
+    disp_guess_meth_moments <- f_expression_var - xim * f_expression_mean
+    disp_guess_meth_moments <- disp_guess_meth_moments/(f_expression_mean^2)
+    res <- data.frame(mu = as.vector(f_expression_mean), disp = as.vector(disp_guess_meth_moments))
+    res[res$mu == 0]$mu = NA
+    res[res$mu == 0]$disp = NA
+    res$disp[res$disp < 0] <- 0
+    res[[id_tag]] <- row.names(data)
+    res
+  }
   # m3vars<-m3addon:::rowStdDev(as(x, "sparseMatrix"))
   # head(m3vars[1,]^(2))
   # head(f_expression_var)
-  disp_guess_meth_moments <- f_expression_var - xim * f_expression_mean
-  disp_guess_meth_moments <- disp_guess_meth_moments/(f_expression_mean^2)
-  res <- data.frame(mu = as.vector(f_expression_mean), disp = as.vector(disp_guess_meth_moments))
-  res[res$mu == 0]$mu = NA
-  res[res$mu == 0]$disp = NA
-  res$disp[res$disp < 0] <- 0
-  res[[id_tag]] <- row.names(fData(cds[nzGenes, ]))
-  res
 }
 
 
