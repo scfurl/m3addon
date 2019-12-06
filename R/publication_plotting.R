@@ -45,7 +45,7 @@ split_plot<-function(a.gplot, widths=c(4.5/6,1.5/6)){
 #' 
 
 #' @param plot A ggplot2 object
-#' @param method method indicating which icon to use.  Currently 'tSNE' and 'UMAP' supported
+#' @param method method indicating which icon to use.  Currently 'tSNE', 'PCA', and 'UMAP' supported
 #' @param widths A vector of length 2 specifying the size of the plot grid and legend grid, respectively.
 #' @param correction_x, integer to offset icon in x axis
 #' @param correction_y, integer to offset icon in y axis
