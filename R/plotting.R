@@ -157,7 +157,7 @@ monocle_theme_opts <- function()
 #' @param rasterize Whether to plot cells as a rastered bitmap. Requires the
 #'   ggrastr package.
 #' @importFrom ggplot2 ggplot
-#'
+#' @import monocle3
 #' @return a ggplot2 plot object
 #' @export
 #' @examples

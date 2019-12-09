@@ -92,8 +92,8 @@ pseudobulk<-function(cds, by, n=10){
 #'
 #' @return matrix containing enrichment scroes. Rows are gene sets, columns are samples.
 #' @importFrom matrixStats colRanks
-#' @examples
 #' @export
+#' @examples
 #' # Create a fake matrix
 #' m = 100
 #' n = 100

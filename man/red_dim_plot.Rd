@@ -11,7 +11,7 @@ red_dim_plot(plot, method = "UMAP", size = 20,
 \arguments{
 \item{plot}{A ggplot2 object}
 
-\item{method}{method indicating which icon to use.  Currently 'tSNE' and 'UMAP' supported}
+\item{method}{method indicating which icon to use.  Currently 'tSNE', 'PCA', and 'UMAP' supported}
 
 \item{correction_x, }{integer to offset icon in x axis}
 
