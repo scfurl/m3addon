@@ -8,3 +8,17 @@ def doubletdetection_py(X, boost_rate, n_components, n_top_var_genes, use_phenog
   # raw_counts is a cells by genes count matrix
   labels = clf.fit(X).predict(float(p_thresh), float(voter_thresh))
   return(labels)
+
+
+
+"""
+import trimap
+from sklearn.datasets import load_digits
+
+digits = load_digits()
+
+embedding = trimap.TRIMAP(n_inliers=20,
+                          n_outliers=10,
+                          n_random=10,
+                          weight_adj=1000.0).fit_transform(digits.data)
+"""

@@ -1,0 +1,106 @@
+---
+title: "debug"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r}
+reticulate::use_python("/Users/sfurla/.virtualenvs/py3/bin/python", required = T)
+library(reticulate)
+py_config()
+py_install("trimap", envname = "py3")
+py_install("sklearn", envname = "py3")
+py_install("scikit-learn", envname = "py3")
+```
+
+
+```{python}
+import sklearn
+import trimap
+from sklearn.datasets import load_digits
+
+digits = load_digits()
+dat = digits.data
+embedding = trimap.TRIMAP(n_inliers=20,
+                          n_outliers=10,
+                          n_random=10,
+                          weight_adj=1000.0).fit_transform(dat)
+```
+
+
+```{r}
+library(ggplot2)
+umap<-as.data.frame(uwot::umap(py$dat))
+colnames(umap)<-c("x", "y")
+umap$col<-as.factor(py$digits$target)
+emb<-as.data.frame(py$embedding)
+colnames(emb)<-c("x", "y")
+emb$col<-as.factor(py$digits$target)
+ggplot(emb, aes(x=x, y=y, color=col))+geom_point()+theme_bw()+ggtitle("trimap")
+ggplot(umap, aes(x=x, y=y, color=col))+geom_point()+theme_bw()+ggtitle("umap")
+
+
+suppressPackageStartupMessages({
+  library(monocle3)
+  library(m3addon)
+  library(reticulate)
+  library(openxlsx)  
+  library(dplyr)
+  library(Matrix)
+  library(ggplot2)
+  #library(rhdf5)
+  library(h5)
+  library(xfun)
+  library(pals)
+  library(RColorBrewer)
+  library(piano)
+  library(GSEABase)
+  library(data.table)
+  
+})
+
+ROOT_DIR="/Users/sfurla/Box Sync/PI_FurlanS/computation"
+CDS_DIR <- file.path(ROOT_DIR, "Analysis", "NHPTreg_mm", "cds", "4thRound")
+cds <- readRDS(file.path(CDS_DIR, "190820_m3_CDS.RDS"))
+mix_S <-readRDS(file.path(CDS_DIR, "cds_Day3Day20andTregs_NaiveEffGenes.RDS"))
+pData(cds)$UMAP_Clust<-NA
+pData(cds)$UMAP_Clust[match(colnames(mix_S), colnames(cds))]<-as.character(mix_S@phenoData@data$Cluster_Lab)
+pData(cds)$UMAP_1<-NA
+pData(cds)$UMAP_2<-NA
+pData(cds)$UMAP_1[match(colnames(mix_S), colnames(cds))]<-t(mix_S@reducedDimA)[,1]
+pData(cds)$UMAP_2[match(colnames(mix_S), colnames(cds))]<-t(mix_S@reducedDimA)[,2]
+cds_S<-cds[,!is.na(pData(cds)$UMAP_Clust)]
+cds_S<-cds_S[,match(colnames(cds_S),colnames(mix_S))]
+reducedDims(cds_S)[["UMAP"]]<-cbind(pData(cds_S)$UMAP_1, pData(cds_S)$UMAP_2)
+rm(cds, mix_S)
+
+source_python(file.path("/Users/sfurla/Box Sync/PI_FurlanS/computation/Rproj/m3addon/inst/trimap.py"))
+
+
+plot_cells(cds_S, color_cells_by = "UMAP_Clust", reduction_method = "UMAP",  label_cell_groups = F, cell_size = 0.7)
+X<-t(as.matrix(exprs(cds_S)))
+debug(trimap)
+res<-trimap(cds_S)
+
+
+reducedDims(cds_S)[["spRing"]]<-py$embedding
+
+
+plot_cells(cds_S, color_cells_by = "UMAP_Clust", reduction_method = "spRing",  label_cell_groups = F, cell_size = 0.7)
+```
+
+
+```{python}
+import sklearn
+import trimap
+from sklearn.datasets import load_digits
+
+dat = r[["X"]]
+embedding = trimap.TRIMAP(n_inliers=20,
+                          n_outliers=10,
+                          n_random=10,
+                          weight_adj=1000.0).fit_transform(dat)
+```
+
