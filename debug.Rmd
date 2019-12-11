@@ -76,7 +76,7 @@ cds_S<-cds_S[,match(colnames(cds_S),colnames(mix_S))]
 reducedDims(cds_S)[["UMAP"]]<-cbind(pData(cds_S)$UMAP_1, pData(cds_S)$UMAP_2)
 rm(cds, mix_S)
 
-source_python(file.path("/Users/sfurla/Box Sync/PI_FurlanS/computation/Rproj/m3addon/inst/trimap.py"))
+#source_python(file.path("/Users/sfurla/Box Sync/PI_FurlanS/computation/Rproj/m3addon/inst/trimap.py"))
 
 
 plot_cells(cds_S, color_cells_by = "UMAP_Clust", reduction_method = "UMAP",  label_cell_groups = F, cell_size = 0.7)
@@ -93,14 +93,14 @@ plot_cells(cds_S, color_cells_by = "UMAP_Clust", reduction_method = "spRing",  l
 
 
 ```{python}
-import sklearn
-import trimap
-from sklearn.datasets import load_digits
+def trimap_fromR(data, n_dims, n_inliers, n_outliers, n_random, distance, lr, n_iters, knn_tuple, apply_pca, opt_method, verbose, weight_adj, return_seq):
+  import trimap
+  knn_tuple=None
+  embedding = trimap.TRIMAP(n_dims = int(n_dims), n_inliers = int(n_inliers), n_outliers = int(n_outliers), n_random = int(n_random), distance = str(distance), lr = float(lr), n_iters = int(n_iters), apply_pca = bool(apply_pca),opt_method = str(opt_method), verbose = bool(verbose), weight_adj = float(weight_adj), return_seq = bool(return_seq)).fit_transform(data)
+  return(embedding)
 
-dat = r[["X"]]
-embedding = trimap.TRIMAP(n_inliers=20,
-                          n_outliers=10,
-                          n_random=10,
-                          weight_adj=1000.0).fit_transform(dat)
+
+
 ```
+
 
