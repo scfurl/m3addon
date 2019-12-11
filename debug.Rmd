@@ -83,13 +83,10 @@ rm(cds, mix_S)
 plot_cells(cds_S, color_cells_by = "UMAP_Clust", reduction_method = "UMAP",  label_cell_groups = F, cell_size = 0.7)
 #X<-t(as.matrix(exprs(cds_S)))
 #debug(trimap)
-res<-trimap(cds_S)
+plot_pc_variance_explained(cds_S)
+cds<-trimap(cds_S, num_dims = 10)
 
-
-reducedDims(cds_S)[["spRing"]]<-res
-
-
-plot_cells(cds_S, color_cells_by = "UMAP_Clust", reduction_method = "spRing",  label_cell_groups = F, cell_size = 0.7)
+plot_cells(cds_S, color_cells_by = "Category", reduction_method = "trimap",  label_cell_groups = F, cell_size = 0.7)
 ```
 
 

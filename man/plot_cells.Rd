@@ -5,9 +5,9 @@
 \title{Plots the cells along with their trajectories.}
 \usage{
 plot_cells(cds, x = 1, y = 2, reduction_method = c("UMAP", "tSNE",
-  "PCA", "LSI", "spRing"), color_cells_by = "cluster",
-  cluster_reduction_method = c("UMAP", "tSNE", "PCA", "LSI", "spRing"),
-  group_cells_by = c("cluster", "partition"), genes = NULL,
+  "PCA", "LSI", "spRing", "trimap"), color_cells_by = "cluster",
+  cluster_reduction_method = c("UMAP", "tSNE", "PCA", "LSI", "spRing",
+  "trimap"), group_cells_by = c("cluster", "partition"), genes = NULL,
   show_trajectory_graph = TRUE, trajectory_graph_color = "grey28",
   trajectory_graph_segment_size = 0.75, norm_method = c("log",
   "size_only"), label_cell_groups = TRUE,
@@ -24,7 +24,7 @@ plot_cells(cds, x = 1, y = 2, reduction_method = c("UMAP", "tSNE",
 \item{y}{the column of reducedDims(cds) to plot on the vertical axis}
 
 \item{reduction_method}{The lower dimensional space in which to plot cells.
-Must be one of "UMAP", "tSNE", "PCA", "spRing", and "LSI".}
+Must be one of "UMAP", "tSNE", "PCA", "spRing", "trimap", and "LSI".}
 
 \item{color_cells_by}{What to use for coloring the cells. Must be either the
 name of a column of colData(cds), or one of "clusters", "partitions", or
