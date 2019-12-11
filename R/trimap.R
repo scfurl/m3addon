@@ -24,6 +24,7 @@ trimap<-function(cds, python_home = system("which python", intern = TRUE), num_d
                   verbose = TRUE, weight_adj = 500.0,  return_seq = FALSE)
 {
   #reticulate::use_python(python_home)
+  if(!py_available("trimap")) stop("python module trimap does not seem to be installed; - try running 'py_config()'")
   source_python(module_file)
   if(is.null(reducedDims(cds)["PCA"]))stop("PCA not found in the reducedDims slot")
   if(is.null(num_dims)){

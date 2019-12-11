@@ -28,6 +28,7 @@ doubletdetection<-function(cds, python_home = system("which python", intern = TR
                            use_phenograph=TRUE, n_iters=25,  verbose=TRUE, standard_scaling=FALSE, p_thresh=1e-7, voter_thresh=0.9)
 {
   #reticulate::use_python(python_home)
+  if(!py_available("doubletdetection")) stop("python module doubletdetection does not seem to be installed; - try running 'py_config()'")
   source_python(module_file)
   X<-t(as.matrix(exprs(cds)))
   doubletdetection_args<-c(list(X, boost_rate=boost_rate, n_components=as.integer(n_components), n_top_var_genes=as.integer(n_top_var_genes), 

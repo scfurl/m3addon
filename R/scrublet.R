@@ -25,6 +25,7 @@ scrublet_R <- function (cds, python_home = system("which python", intern = TRUE)
           n_prin_comps=50, sim_doublet_ratio=2, n_neighbors=NULL) 
 {
   #reticulate::use_python(python_home)
+  if(!py_available("scrublet")) stop("python module scrublet does not seem to be installed; - try running 'py_config()'")
   reticulate::source_python(paste(system.file(package = "m3addon"), 
                                   "scrublet.py", sep = "/"))
   X <- as(t(exprs(cds)), "TsparseMatrix")
