@@ -41,7 +41,8 @@ emb$col<-as.factor(py$digits$target)
 ggplot(emb, aes(x=x, y=y, color=col))+geom_point()+theme_bw()+ggtitle("trimap")
 ggplot(umap, aes(x=x, y=y, color=col))+geom_point()+theme_bw()+ggtitle("umap")
 
-
+reticulate::use_python("/Users/sfurla/.virtualenvs/py3/bin/python", required = T)
+py_module_available("trimap")
 suppressPackageStartupMessages({
   library(monocle3)
   library(m3addon)
@@ -80,12 +81,12 @@ rm(cds, mix_S)
 
 
 plot_cells(cds_S, color_cells_by = "UMAP_Clust", reduction_method = "UMAP",  label_cell_groups = F, cell_size = 0.7)
-X<-t(as.matrix(exprs(cds_S)))
-debug(trimap)
+#X<-t(as.matrix(exprs(cds_S)))
+#debug(trimap)
 res<-trimap(cds_S)
 
 
-reducedDims(cds_S)[["spRing"]]<-py$embedding
+reducedDims(cds_S)[["spRing"]]<-res
 
 
 plot_cells(cds_S, color_cells_by = "UMAP_Clust", reduction_method = "spRing",  label_cell_groups = F, cell_size = 0.7)

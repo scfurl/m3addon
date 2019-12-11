@@ -114,7 +114,7 @@ monocle_theme_opts <- function()
 #' @param y the column of reducedDims(cds) to plot on the vertical axis
 #' @param cell_size The size of the point for each cell
 #' @param reduction_method The lower dimensional space in which to plot cells.
-#'   Must be one of "UMAP", "tSNE", "PCA", "spRing", and "LSI".
+#'   Must be one of "UMAP", "tSNE", "PCA", "spRing", "trimap", and "LSI".
 #' @param cluster_reduction_method The dimensional space from which to plot clusters.
 #'   Must be one of "UMAP", "tSNE", "PCA", "LSI".
 #' @param color_cells_by What to use for coloring the cells. Must be either the
@@ -172,9 +172,9 @@ monocle_theme_opts <- function()
 plot_cells <- function(cds,
                        x=1,
                        y=2,
-                       reduction_method = c("UMAP", "tSNE", "PCA", "LSI", "spRing"),
+                       reduction_method = c("UMAP", "tSNE", "PCA", "LSI", "spRing", "trimap"),
                        color_cells_by="cluster",
-                       cluster_reduction_method = c("UMAP", "tSNE", "PCA", "LSI", "spRing"),
+                       cluster_reduction_method = c("UMAP", "tSNE", "PCA", "LSI", "spRing", "trimap"),
                        group_cells_by=c("cluster", "partition"),
                        genes=NULL,
                        show_trajectory_graph=TRUE,
