@@ -108,11 +108,13 @@ def trimap_fromR(data, n_dims, n_inliers, n_outliers, n_random, distance, lr, n_
 
 
 ```{r}
-reticulate::use_python("/Users/sfurla/Box Sync/PI_FurlanS/computation/develop/solo/solo/bin/python3", required = T)
+
+#reticulate::virtualenv_create(envname = "solo", python="/usr/local/bin/python3")
+reticulate::use_python("/Users/sfurla/.virtualenvs/solo/bin/python3", required = T)
 library(reticulate)
 reticulate::py_config()
 py_module_available("solo")
-
+py_install("/Users/sfurla/develop/solo")
 
 suppressPackageStartupMessages({
   library(monocle3)
@@ -138,9 +140,9 @@ og<-cds@int_metadata$dispersion$gene_short_name[cds@int_metadata$dispersion$use_
 X<-as.matrix(exprs(cds[rownames(cds) %in% og,cds$group %in% "15w_CAR_Alone"]))
 Xs<-t(X[,sample(1:dim(X)[2], 350)])
 
-dim(Xs)
-write.csv(X, file.path("/Users/sfurla/Box Sync/PI_FurlanS/computation/Rproj/m3addon/testdata.csv"))
-source_python(file.path("/Users/sfurla/Box Sync/PI_FurlanS/computation/Rproj/m3addon/inst/solo.py"))
+#dim(Xs)
+#write.csv(X, file.path("/Users/sfurla/Box Sync/PI_FurlanS/computation/Rproj/m3addon/testdata.csv"))
+#source_python(file.path("/Users/sfurla/Box Sync/PI_FurlanS/computation/Rproj/m3addon/inst/solo.py"))
 cn<-colnames(Xs)
 #solo(Xs, cn)
 ```
@@ -264,8 +266,7 @@ else:
     stopping_params['early_stopping_metric'] = 'reconstruction_error'
     stopping_params['save_best_state_metric'] = 'reconstruction_error'
     # initialize unsupervised trainer
-    utrainer = \
-        UnsupervisedTrainer(vae, singlet_scvi_data,
+    utrainer = UnsupervisedTrainer(vae, singlet_scvi_data,
                             train_size=(1. - valid_pct),
                             frequency=2,
                             metrics_to_monitor=['reconstruction_error'],
@@ -478,4 +479,44 @@ d=anndata.read_csv("/Users/sfurla/Box Sync/PI_FurlanS/computation/Rproj/m3addon/
 scvi_data = make_gene_expression_dataset(d.X.transpose(), gene_names=rn)
 
 
-````
+```
+
+
+
+
+```{r}
+rm(list=ls())
+#reticulate::virtualenv_create(envname = "solo", python="/usr/local/bin/python3")
+reticulate::use_python("/Users/sfurla/.virtualenvs/py3/bin/python3", required = T)
+library(reticulate)
+reticulate::py_config()
+py_module_available("trimap")
+#py_install("/Users/sfurla/develop/solo")
+py_config()
+
+suppressPackageStartupMessages({
+  library(monocle3)
+  library(m3addon)
+  library(reticulate)
+  library(openxlsx)  
+  library(dplyr)
+  library(Matrix)
+  library(ggplot2)
+  #library(rhdf5)
+  library(h5)
+  library(xfun)
+  library(pals)
+  library(RColorBrewer)
+  library(piano)
+  library(GSEABase)
+  library(data.table)
+  library(Seurat)
+})
+
+cds<-readRDS("/Users/sfurla/Box Sync/PI_FurlanS/computation/Analysis/KpOxCy/cds/191208_DoubletsCalled4methods.RDS")
+plot_pc_variance_explained(cds)
+debug(trimap)
+cds<-trimap(cds, num_dims = 30)
+plot_cells(cds, color_cells_by = "group", reduction_method = "trimap",  label_cell_groups = F, cell_size = 0.7)
+plot_cells(cds, gene="Nos2", reduction_method = "trimap",  label_cell_groups = F, cell_size = 0.7)
+```

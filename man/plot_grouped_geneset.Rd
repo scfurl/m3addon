@@ -16,6 +16,8 @@ plot_grouped_geneset(cds, marker_set, name, by, scale = "width",
 
 \item{name}{Name given to the geneset}
 
+\item{method}{'totals' or 'corrected'.  See estimate_score and estimate_corrected_score for more information}
+
 \item{fData_col}{Character string denoting the gene_metadata DataFrame (fData) column that contains the genes in marker_set1.  Default = 'gene_short_name'}
 }
 \value{

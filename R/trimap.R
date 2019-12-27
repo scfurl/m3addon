@@ -34,9 +34,21 @@ trimap<-function(cds, python_home = system("which python", intern = TRUE), num_d
   #data<-t(as.matrix(exprs(cds)))
   distance <- match.arg(distance)
   opt_method <- match.arg(opt_method)
-  trimap_args<-c(list(data, n_dims, n_inliers, n_outliers, n_random, distance, lr, n_iters, knn_tuple, apply_pca_trimap, opt_method,
-                                      verbose, weight_adj, return_seq))
-  reducedDims(cds)[["trimap"]] <- do.call(trimap_fromR, trimap_args)
+  # trimap_args<-c(list(data, n_dims, n_inliers, n_outliers, n_random, distance, lr, n_iters, knn_tuple, apply_pca_trimap, opt_method,
+  #                                     verbose, weight_adj, return_seq))
+  
+  # print(trimap_args[2:length(trimap_args)]
+  #reducedDims(cds)[["trimap"]] <- do.call(trimap_fromR, trimap_args)
+  # sink("log.txt")
+  # message<-py_capture_output()
+  # sink()
+  message("Running trimap: For a variety of reasons, python output is provided at end of function, so just be patient...")
+  returned <- trimap_fromR(data, n_dims, n_inliers, n_outliers, n_random, distance, lr, n_iters, knn_tuple, apply_pca_trimap, opt_method, verbose, weight_adj, return_seq)
+  reducedDims(cds)[["trimap"]] <-returned[[2]]
+  message <- returned[[1]]
+  for(i in message){
+    lapply(regmatches(i, gregexpr('(\").*?(\")', i, perl = TRUE)), function(y) gsub("^\"|\"$", "", y))
+  }
   return(cds)
 }
 

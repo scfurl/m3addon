@@ -156,7 +156,7 @@ set_ordering_genes<-function(cds, genes, gene_column="id", unique_column="id"){
 calculate_gene_dispersion<-function(cds, q=3, id_tag="id", symbol_tag="gene_short_name", method="m3addon", removeOutliers=T){
   cds@int_metadata$dispersion<-NULL
   if(method=="m2"){
-    df<-data.frame(calc_dispersion_m2(cds = cds, min_cells_detected = 1, min_exprs=1, id_tag=id_tag))
+    df<-data.frame(calc_dispersion_m2(obj = cds, min_cells_detected = 1, min_exprs=1, id_tag=id_tag))
     fdat<-fData(cds)
     if (!is.list(df)) 
       stop("Parametric dispersion fitting failed, please set a different lowerDetectionLimit")

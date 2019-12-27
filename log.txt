@@ -1,0 +1,33 @@
+debugging in: trimap(cds, num_dims = 30)
+debug at #1: {
+    if (!py_available("trimap")) 
+        stop("python module trimap does not seem to be installed; - try running 'py_config()'")
+    source_python(module_file)
+    if (is.null(reducedDims(cds)["PCA"])) 
+        stop("PCA not found in the reducedDims slot")
+    if (is.null(num_dims)) {
+        num_dims <- dim(reducedDims(cds)["PCA"][[1]])[2]
+    }
+    data <- reducedDims(cds)["PCA"][[1]][, 1:num_dims]
+    distance <- match.arg(distance)
+    opt_method <- match.arg(opt_method)
+    returned <- trimap_fromR(data, n_dims, n_inliers, n_outliers, 
+        n_random, distance, lr, n_iters, knn_tuple, apply_pca_trimap, 
+        opt_method, verbose, weight_adj, return_seq)
+    reducedDims(cds)[["trimap"]] <- returned[[2]]
+    message <- returned[[1]]
+    return(cds)
+}
+debug at #7: if (!py_available("trimap")) stop("python module trimap does not seem to be installed; - try running 'py_config()'")
+debug at #8: source_python(module_file)
+debug at #9: if (is.null(reducedDims(cds)["PCA"])) stop("PCA not found in the reducedDims slot")
+debug at #10: if (is.null(num_dims)) {
+    num_dims <- dim(reducedDims(cds)["PCA"][[1]])[2]
+}
+debug at #13: data <- reducedDims(cds)["PCA"][[1]][, 1:num_dims]
+debug at #15: distance <- match.arg(distance)
+debug at #16: opt_method <- match.arg(opt_method)
+debug at #26: returned <- trimap_fromR(data, n_dims, n_inliers, n_outliers, 
+    n_random, distance, lr, n_iters, knn_tuple, apply_pca_trimap, 
+    opt_method, verbose, weight_adj, return_seq)
+<function trimap_fromR at 0x123058378>
