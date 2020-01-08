@@ -530,7 +530,7 @@ plot_cells <- function(cds,
     
     
     if (label_branch_points){
-      mst_branch_nodes <- branch_nodes(cds)
+      mst_branch_nodes <- monocle3:::branch_nodes(cds)
       branch_point_df <- ica_space_df %>%
         dplyr::slice(match(names(mst_branch_nodes), sample_name)) %>%
         dplyr::mutate(branch_point_idx = seq_len(dplyr::n()))
