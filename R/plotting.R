@@ -15,7 +15,7 @@
 #' @param fData_col Character string denoting the gene_metadata DataFrame (fData) column that contains the genes in marker_set1.  Default = 'gene_short_name'
 #' @param method 'totals' or 'corrected'.  See estimate_score and estimate_corrected_score for more information
 #' @return Plot
-#' @import ggplot2, monocle3
+#' @import ggplot2 monocle3
 #' @export
 #' @references Puram, S. V. et al. Single-Cell Transcriptomic Analysis of Primary and 
 #' Metastatic Tumor Ecosystems in Head and Neck Cancer. Cell 171, 1611.e1–1611.e24 (2017).
