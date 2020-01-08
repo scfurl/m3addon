@@ -549,7 +549,7 @@ plot_cells <- function(cds,
     }
     
     if (label_leaves){
-      mst_leaf_nodes <- leaf_nodes(cds)
+      mst_leaf_nodes <- monocle3:::leaf_nodes(cds)
       leaf_df <- ica_space_df %>%
         dplyr::slice(match(names(mst_leaf_nodes), sample_name)) %>%
         dplyr::mutate(leaf_idx = seq_len(dplyr::n()))
@@ -568,7 +568,7 @@ plot_cells <- function(cds,
     }
     
     if (label_roots){
-      mst_root_nodes <- root_nodes(cds)
+      mst_root_nodes <- monocle3:::root_nodes(cds)
       root_df <- ica_space_df %>%
         dplyr::slice(match(names(mst_root_nodes), sample_name)) %>%
         dplyr::mutate(root_idx = seq_len(dplyr::n()))
@@ -600,7 +600,7 @@ plot_cells <- function(cds,
   
   g <- g +
     #scale_color_brewer(palette="Set1") +
-    monocle_theme_opts() +
+    monocle3:::monocle_theme_opts() +
     xlab(paste(reduction_method, x)) +
     ylab(paste(reduction_method, y)) +
     #guides(color = guide_legend(label.position = "top")) +
