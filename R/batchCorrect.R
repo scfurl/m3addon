@@ -10,7 +10,7 @@
 #' @param exprs_cuts Numeic indicating number of bins if using exprs_bin
 #' @return Updated cell_data_set object
 #' @importFrom scran mnnCorrect
-#' @importFrom scran fastMNN
+#' @importFrom batchelor fastMNN
 #' @export
 #' 
 #' 
