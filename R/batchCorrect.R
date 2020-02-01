@@ -9,7 +9,6 @@
 #' @param exprs_bin Boolean whether to bin genes by mean expression
 #' @param exprs_cuts Numeic indicating number of bins if using exprs_bin
 #' @return Updated cell_data_set object
-#' @importFrom scran mnnCorrect
 #' @importFrom batchelor fastMNN
 #' @export
 #' 
