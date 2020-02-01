@@ -23,9 +23,9 @@ Imports:
   gridExtra (>= 2.0),
   matrixStats (>= 0.5),
   reshape2 (>= 1.3),
-  fields (>=9.0),
-  fields (>=9.0),
-  modes (>=0.6)
+  batchelor (>= 1.0),
+  fields (>= 9.0),
+  modes (>= 0.6)
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.1.1
 Encoding: UTF-8
