@@ -52,7 +52,7 @@ mnnCorrect_cds<-function(cds,  batch_term, fast=TRUE,
   #call mnn
   
   if (fast){
-    mnn_out<-batchelor::fastMNN(t(reducedDims(cds)[["PCA"]]), batch=pData(cds)[[batch_term]])
+    mnn_out<-fastMNN(t(reducedDims(cds)[["PCA"]]), batch=pData(cds)[[batch_term]])
   }else{
     mnn_out<-do.call(mnnCorrect, mnn_call)
   }
