@@ -12,7 +12,7 @@ Imports:
   monocle3 (>= 0.1.0),
   Matrix (>= 1.0),
   ggplot2 (>= 3.0.0),
-  h5 (>= 0.9.9),
+  hdf5r (>= 1.0.0),
   reticulate (>= 1.12),
   Hmisc (>= 4.0),
   fgsea (>= 1.0),

@@ -7,6 +7,7 @@ library(Rcpp)
 library(ggplot2)
 roxygen2::roxygenize(".")
 usethis::use_build_ignore("debug.R")
+usethis::use_build_ignore("debug.Rmd")
 
 cds<-readRDS("data/m3cds.RDS")
 
