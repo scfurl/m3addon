@@ -37,6 +37,7 @@ read.cds.cellranger.h5.file = function(h5.file) {
   fData.df = data.frame(
     id = gene_ids,
     gene_short_name = gene_names,
+    feature_type = featuretype,
     stringsAsFactors = F
   )
 
