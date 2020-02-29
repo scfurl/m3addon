@@ -76,7 +76,6 @@ read.cds.cellranger.h5.file = function(h5.file) {
 #' @param aggregated will read a cellranger aggregate folder, this is currently only supported for 1 folder.  The 'aggregation.csv'
 #' file must be included in the 'outs' folder.
 #' @return a cell_data_set object or a list of items if unfiltered data is returned (see unfiltered)
-#' @importFrom h5 h5file
 #' @importFrom Matrix colSums
 #' @export
 load_cellranger_data_h5<-function(folders, 
