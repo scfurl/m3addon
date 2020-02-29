@@ -1,24 +1,34 @@
-#' @importFrom h5 h5file
+
+#' @import hdf5r
 #' @importFrom Matrix sparseMatrix
 read.cds.cellranger.h5.file = function(h5.file) {
-  s<-h5file(h5.file, mode="r")
-  barcodes = readDataSet(s["matrix"]["barcodes"])
-  gene_ids = readDataSet(s["matrix"]["features"]["id"])
-  gene_names =readDataSet(s["matrix"]["features"]["name"])
-  data = as.double(readDataSet(s["matrix"]["data"]))
-  indices = as.integer(readDataSet(s["matrix"]["indices"])+1)
-  indptr = as.integer(readDataSet(s["matrix"]["indptr"]))
-  shape = as.integer(readDataSet(s["matrix"]["shape"]))
-  #browser()
   
+  #s<-h5file(h5.file, mode="r")
+  s <- H5File$new(h5.file, mode="r+")
+
+  #s$ls(recursive=TRUE)
+  barcodes = s[["matrix/barcodes"]][]
+  gene_ids = s[["matrix/features/id"]][]
+  gene_names =s[["matrix/features/name"]][]
+  featuretype = s[["matrix/features/feature_type"]][]
+  data = s[["matrix/data"]][]
+  indices = s[["matrix/indices"]][]+1
+  indptr = s[["matrix/indptr"]][]
+  shape = s[["matrix/shape"]][]
+  #browser()
+  h5close(s)
   # gbm = new(
   #   "dgCMatrix",
   #   x = data, i = indices, p = indptr,
   #   Dim = shape)
+  if(length(levels(factor(featuretype)))>1){
+    warning("Warning - Multiple feature types found")
+  }
   
   gbm = sparseMatrix(x = data, i = indices, p = indptr,
     dims = shape)
 
+  
   pData.df = data.frame(
     barcode = barcodes,
     stringsAsFactors = F
