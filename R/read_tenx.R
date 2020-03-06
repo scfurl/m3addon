@@ -89,8 +89,8 @@ load_cellranger_data_h5<-function(folders,
                                   ){
   #This function reads a vector of cellranger folder "out" folders for .h5 files.  Optionally can
   #return the unfiltered data as well.  
-  if(!chemistry %in% c("threeprime" "fiveprime" "SC3Pv1" "SC3Pv2" "SC3Pv3" "SC5P-PE", "SC5P-R2")){stop("Chemistry not found")}
-  if(chemistry %in% c("threeprime" "fiveprime" "SC3Pv1" "SC3Pv2" "SC3Pv3" "SC5P-PE", "SC5P-R2")){
+  if(!chemistry %in% c("threeprime", "fiveprime", "SC3Pv1", "SC3Pv2", "SC3Pv3", "SC5P-PE", "SC5P-R2")){stop("Chemistry not found")}
+  if(chemistry %in% c("threeprime", "fiveprime", "SC3Pv1", "SC3Pv2", "SC3Pv3", "SC5P-PE", "SC5P-R2")){
     if(aggregated){
       #aggregate filtered option:
       if(length(folders)>1) stop("Only one aggregated folder supported")
