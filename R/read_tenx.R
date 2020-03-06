@@ -85,161 +85,284 @@ load_cellranger_data_h5<-function(folders,
                                   empty.droplet.threshold=15, 
                                   expressed_genes=TRUE,
                                   cell_min=1,
-                                  aggregated=F
+                                  aggregated=F, chemistry = "SC3Pv3", atac_feature="peaks"
                                   ){
   #This function reads a vector of cellranger folder "out" folders for .h5 files.  Optionally can
   #return the unfiltered data as well.  
+  if(!chemistry %in% c("threeprime" "fiveprime" "SC3Pv1" "SC3Pv2" "SC3Pv3" "SC5P-PE", "SC5P-R2")){stop("Chemistry not found")}
+  if(chemistry %in% c("threeprime" "fiveprime" "SC3Pv1" "SC3Pv2" "SC3Pv3" "SC5P-PE", "SC5P-R2")){
+    if(aggregated){
+      #aggregate filtered option:
+      if(length(folders)>1) stop("Only one aggregated folder supported")
+      filt_file<-file.path(folders[1], "outs", "filtered_feature_bc_matrix.h5")
+      unfilt_file<-file.path(folders[1], "outs", "raw_feature_bc_matrix.h5")
+      agg_file<-file.path(folders[1], "outs", "aggregation.csv")
+      message(paste0("Reading aggregated (filtered) data for: ", filt_file))
+      if(!file.exists(agg_file)) stop("aggregation.csv file must be present in 'outs'")
+      cds = read.cds.cellranger.h5.file(filt_file)
+      agg<-read.csv(agg_file)
+      pData(cds)$n.umi = Matrix::colSums(exprs(cds))
+      pData(cds)$sample_no<-sapply(strsplit(rownames(pData(cds)), "-"), "[[", 2)
+      agg$sample_no<-1:nrow(agg)
+      if(expressed_genes){
+        cds<-detect_genes(cds, exprs_bin = F)
+        cds<-cds[fData(cds)$num_cells_expressed>cell_min,]
+      }
+      cds<-add_meta_data_cds(cds=cds, meta=agg, cds_col = "sample_no", meta_col = "sample_no")
+      if(aggregated & !unfiltered){return(cds)}
+      
+      #aggregate unfiltered option:
+      message(paste0("Reading aggregated (unfiltered) data for: ", filt_file))
+      cds_unfilt = read.cds.cellranger.h5.file(unfilt_file)
+      agg<-read.csv(agg_file)
+      pData(cds_unfilt)$n.umi = Matrix::colSums(exprs(cds_unfilt))
+      pData(cds_unfilt)$sample_no<-sapply(strsplit(rownames(pData(cds_unfilt)), "-"), "[[", 2)
+      agg$sample_no<-1:nrow(agg)
+      if(expressed_genes){
+        cds_unfilt<-detect_genes(cds_unfilt, exprs_bin = F)
+        cds_unfilt<-cds_unfilt[fData(cds_unfilt)$num_cells_expressed>cell_min,]
+      }
+      cds_unfilt<-add_meta_data_cds(cds=cds_unfilt, meta=agg, cds_col = "sample_no", meta_col = "sample_no")
+      if(aggregated & unfiltered){return(list(unfiltered_cds=cds_unfilt, filtered_cds=cds))}
+    }
   
-  if(aggregated){
-    #aggregate filtered option:
-    if(length(folders)>1) stop("Only one aggregated folder supported")
-    filt_file<-file.path(folders[1], "outs", "filtered_feature_bc_matrix.h5")
-    unfilt_file<-file.path(folders[1], "outs", "raw_feature_bc_matrix.h5")
-    agg_file<-file.path(folders[1], "outs", "aggregation.csv")
-    message(paste0("Reading aggregated (filtered) data for: ", filt_file))
-    if(!file.exists(agg_file)) stop("aggregation.csv file must be present in 'outs'")
-    cds = read.cds.cellranger.h5.file(filt_file)
-    agg<-read.csv(agg_file)
-    pData(cds)$n.umi = Matrix::colSums(exprs(cds))
-    pData(cds)$sample_no<-sapply(strsplit(rownames(pData(cds)), "-"), "[[", 2)
-    agg$sample_no<-1:nrow(agg)
+    #browser()
+    #multiple files (no_agg); unfiltered option
+    if(is.null(samplenames)){
+      sample.ids<-folders
+      names(sample.ids)<-sapply(folders, basename)
+    }else{
+      sample.ids<-folders
+      names(sample.ids)<-samplenames
+    }
+    
+    ######filt
+    #read filtered data
+    filtered.cds.list<-list()
+    for(sample.id in sample.ids){
+      message(paste0("Reading (filtered) data for: ", sample.id))
+      filtered.cds.list[[sample.id]] = read.cds.cellranger.h5.file(
+        file.path(sample.id, "outs", "filtered_feature_bc_matrix.h5"))
+      pData(filtered.cds.list[[sample.id]])$n.umi<-colSums(exprs(filtered.cds.list[[sample.id]]))
+    }
+    
+    #add_and checkrownames
+    if(length(filtered.cds.list)>1){
+      fdat_rownames<-lapply(filtered.cds.list, function(cds) rownames(fData(cds)))
+      if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
+    }
+    #make fData
+    common.fData = fData(filtered.cds.list[[sample.ids[1]]])
+    names(filtered.cds.list)<-names(sample.ids)
+    #make pData
+    new.pData = list()
+    for (sample.id in names(sample.ids)) {
+      new.pData[[sample.id]] = pData(filtered.cds.list[[sample.id]])
+      
+      new.pData[[sample.id]]$sample = sample.id
+      
+      new.pData[[sample.id]]$cell = paste(
+        sample.id, new.pData[[sample.id]]$barcode, sep = ".")
+      
+      rownames(new.pData[[sample.id]]) = new.pData[[sample.id]]$cell
+    }
+    #make exprsData
+    new.exprs = list()
+    for (sample.id in names(sample.ids)) {
+      new.exprs[[sample.id]] = exprs(filtered.cds.list[[sample.id]])
+      colnames(new.exprs[[sample.id]]) = new.pData[[sample.id]]$cell
+    }
+    
+    #combine
+    combined.pData = do.call(rbind, new.pData)
+    combined.pData = combined.pData[, c("barcode", "n.umi",  "sample")]
+    rownames(combined.pData) = paste0(combined.pData$sample, ".", combined.pData$barcode)
+    combined.exprs = do.call(cbind, new.exprs)
+    cds = new_cell_data_set(
+      combined.exprs,
+      cell_metadata =  combined.pData,
+      gene_metadata = common.fData
+    )
     if(expressed_genes){
       cds<-detect_genes(cds, exprs_bin = F)
       cds<-cds[fData(cds)$num_cells_expressed>cell_min,]
     }
-    cds<-add_meta_data_cds(cds=cds, meta=agg, cds_col = "sample_no", meta_col = "sample_no")
-    if(aggregated & !unfiltered){return(cds)}
+    if(!unfiltered){return(cds)}
+  
+    #####unfilt
+    #read unfiltered data
+    unfiltered.cds.list<-list()
+    for(sample.id in sample.ids){
+        message(paste0("Reading (unfiltered) data for: ", sample.id))
+        unfiltered.cds.list[[sample.id]] = read.cds.cellranger.h5.file(
+          file.path(sample.id, "outs", "raw_feature_bc_matrix.h5"))
+        pData(unfiltered.cds.list[[sample.id]])$n.umi<-colSums(exprs(unfiltered.cds.list[[sample.id]]))
+    }
     
-    #aggregate unfiltered option:
-    message(paste0("Reading aggregated (unfiltered) data for: ", filt_file))
-    cds_unfilt = read.cds.cellranger.h5.file(unfilt_file)
-    agg<-read.csv(agg_file)
-    pData(cds_unfilt)$n.umi = Matrix::colSums(exprs(cds_unfilt))
-    pData(cds_unfilt)$sample_no<-sapply(strsplit(rownames(pData(cds_unfilt)), "-"), "[[", 2)
-    agg$sample_no<-1:nrow(agg)
+    #add_and checkrownames
+    if(length(filtered.cds.list)>1){
+      fdat_rownames<-lapply(filtered.cds.list, function(cds) rownames(fData(cds)))
+      if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
+    }
+    #make fData
+    common.fData = fData(unfiltered.cds.list[[sample.ids[1]]])
+    names(unfiltered.cds.list)<-names(sample.ids)
+    #make pData
+    new.pData = list()
+    for (sample.id in names(sample.ids)) {
+      new.pData[[sample.id]] = pData(unfiltered.cds.list[[sample.id]])
+      
+      new.pData[[sample.id]]$sample = sample.id
+      
+      new.pData[[sample.id]]$cell = paste(
+        sample.id, new.pData[[sample.id]]$barcode, sep = ".")
+      
+      rownames(new.pData[[sample.id]]) = new.pData[[sample.id]]$cell
+    }
+    #make exprsData
+    new.exprs = list()
+    for (sample.id in names(sample.ids)) {
+      new.exprs[[sample.id]] = exprs(unfiltered.cds.list[[sample.id]])
+      colnames(new.exprs[[sample.id]]) = new.pData[[sample.id]]$cell
+    }
+    
+    #combine
+    combined.pData = do.call(rbind, new.pData)
+    combined.pData = combined.pData[, c("barcode", "n.umi",  "sample")]
+    rownames(combined.pData) = paste0(combined.pData$sample, ".", combined.pData$barcode)
+    combined.exprs = do.call(cbind, new.exprs)
+    cds_unfilt = new_cell_data_set(
+      combined.exprs,
+      cell_metadata =  combined.pData,
+      gene_metadata = common.fData
+    )
     if(expressed_genes){
       cds_unfilt<-detect_genes(cds_unfilt, exprs_bin = F)
       cds_unfilt<-cds_unfilt[fData(cds_unfilt)$num_cells_expressed>cell_min,]
     }
-    cds_unfilt<-add_meta_data_cds(cds=cds_unfilt, meta=agg, cds_col = "sample_no", meta_col = "sample_no")
-    if(aggregated & unfiltered){return(list(unfiltered_cds=cds_unfilt, filtered_cds=cds))}
+    if(unfiltered){return(list(unfiltered_cds=cds_unfilt, filtered_cds=cds))}
   }
-
-  #browser()
-  #multiple files (no_agg); unfiltered option
-  if(is.null(samplenames)){
-    sample.ids<-folders
-    names(sample.ids)<-sapply(folders, basename)
-  }else{
-    sample.ids<-folders
-    names(sample.ids)<-samplenames
-  }
-  
-  ######filt
-  #read filtered data
-  filtered.cds.list<-list()
-  for(sample.id in sample.ids){
-    message(paste0("Reading (filtered) data for: ", sample.id))
-    filtered.cds.list[[sample.id]] = read.cds.cellranger.h5.file(
-      file.path(sample.id, "outs", "filtered_feature_bc_matrix.h5"))
-    pData(filtered.cds.list[[sample.id]])$n.umi<-colSums(exprs(filtered.cds.list[[sample.id]]))
-  }
-  
-  #add_and checkrownames
-  if(length(filtered.cds.list)>1){
-    fdat_rownames<-lapply(filtered.cds.list, function(cds) rownames(fData(cds)))
-    if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
-  }
-  #make fData
-  common.fData = fData(filtered.cds.list[[sample.ids[1]]])
-  names(filtered.cds.list)<-names(sample.ids)
-  #make pData
-  new.pData = list()
-  for (sample.id in names(sample.ids)) {
-    new.pData[[sample.id]] = pData(filtered.cds.list[[sample.id]])
+  if(chemistry %in% "ATAC"){
+    if(aggregated){stop("Not currently supported")}
+    if(unfiltered){stop("Not currently supported")}
+    #browser()
+    #multiple files (no_agg); unfiltered option
+    if(is.null(samplenames)){
+      sample.ids<-folders
+      names(sample.ids)<-sapply(folders, basename)
+    }else{
+      sample.ids<-folders
+      names(sample.ids)<-samplenames
+    }
+    if(!atac_feature %in% c("peaks", "tfs"))stop("Currently only peak and tf data supported")
+    if(atac_feature=="peaks"){h5file<="filtered_peak_bc_matrix.h5"}
+    if(atac_feature=="tfs"){h5file<="filtered_tf_bc_matrix.h5"}
+    ######filt
+    #read filtered data
+    filtered.cds.list<-list()
+    for(sample.id in sample.ids){
+      message(paste0("Reading (filtered) data for: ", sample.id))
+      filtered.cds.list[[sample.id]] = read.cds.cellranger.h5.file(
+        file.path(sample.id, "outs", h5file))
+      pData(filtered.cds.list[[sample.id]])$n.umi<-colSums(exprs(filtered.cds.list[[sample.id]]))
+    }
     
-    new.pData[[sample.id]]$sample = sample.id
+    #add_and checkrownames
+    if(length(filtered.cds.list)>1){
+      fdat_rownames<-lapply(filtered.cds.list, function(cds) rownames(fData(cds)))
+      if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
+    }
+    #make fData
+    common.fData = fData(filtered.cds.list[[sample.ids[1]]])
+    names(filtered.cds.list)<-names(sample.ids)
+    #make pData
+    new.pData = list()
+    for (sample.id in names(sample.ids)) {
+      new.pData[[sample.id]] = pData(filtered.cds.list[[sample.id]])
+      
+      new.pData[[sample.id]]$sample = sample.id
+      
+      new.pData[[sample.id]]$cell = paste(
+        sample.id, new.pData[[sample.id]]$barcode, sep = ".")
+      
+      rownames(new.pData[[sample.id]]) = new.pData[[sample.id]]$cell
+    }
+    #make exprsData
+    new.exprs = list()
+    for (sample.id in names(sample.ids)) {
+      new.exprs[[sample.id]] = exprs(filtered.cds.list[[sample.id]])
+      colnames(new.exprs[[sample.id]]) = new.pData[[sample.id]]$cell
+    }
     
-    new.pData[[sample.id]]$cell = paste(
-      sample.id, new.pData[[sample.id]]$barcode, sep = ".")
+    #combine
+    combined.pData = do.call(rbind, new.pData)
+    combined.pData = combined.pData[, c("barcode", "n.umi",  "sample")]
+    rownames(combined.pData) = paste0(combined.pData$sample, ".", combined.pData$barcode)
+    combined.exprs = do.call(cbind, new.exprs)
+    cds = new_cell_data_set(
+      combined.exprs,
+      cell_metadata =  combined.pData,
+      gene_metadata = common.fData
+    )
+    if(expressed_genes){
+      cds<-detect_genes(cds, exprs_bin = F)
+      cds<-cds[fData(cds)$num_cells_expressed>cell_min,]
+    }
+    if(!unfiltered){return(cds)}
     
-    rownames(new.pData[[sample.id]]) = new.pData[[sample.id]]$cell
-  }
-  #make exprsData
-  new.exprs = list()
-  for (sample.id in names(sample.ids)) {
-    new.exprs[[sample.id]] = exprs(filtered.cds.list[[sample.id]])
-    colnames(new.exprs[[sample.id]]) = new.pData[[sample.id]]$cell
-  }
-  
-  #combine
-  combined.pData = do.call(rbind, new.pData)
-  combined.pData = combined.pData[, c("barcode", "n.umi",  "sample")]
-  rownames(combined.pData) = paste0(combined.pData$sample, ".", combined.pData$barcode)
-  combined.exprs = do.call(cbind, new.exprs)
-  cds = new_cell_data_set(
-    combined.exprs,
-    cell_metadata =  combined.pData,
-    gene_metadata = common.fData
-  )
-  if(expressed_genes){
-    cds<-detect_genes(cds, exprs_bin = F)
-    cds<-cds[fData(cds)$num_cells_expressed>cell_min,]
-  }
-  if(!unfiltered){return(cds)}
-
-  #####unfilt
-  #read unfiltered data
-  unfiltered.cds.list<-list()
-  for(sample.id in sample.ids){
+    #####unfilt
+    #read unfiltered data
+    unfiltered.cds.list<-list()
+    for(sample.id in sample.ids){
       message(paste0("Reading (unfiltered) data for: ", sample.id))
       unfiltered.cds.list[[sample.id]] = read.cds.cellranger.h5.file(
         file.path(sample.id, "outs", "raw_feature_bc_matrix.h5"))
       pData(unfiltered.cds.list[[sample.id]])$n.umi<-colSums(exprs(unfiltered.cds.list[[sample.id]]))
-  }
-  
-  #add_and checkrownames
-  if(length(filtered.cds.list)>1){
-    fdat_rownames<-lapply(filtered.cds.list, function(cds) rownames(fData(cds)))
-    if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
-  }
-  #make fData
-  common.fData = fData(unfiltered.cds.list[[sample.ids[1]]])
-  names(unfiltered.cds.list)<-names(sample.ids)
-  #make pData
-  new.pData = list()
-  for (sample.id in names(sample.ids)) {
-    new.pData[[sample.id]] = pData(unfiltered.cds.list[[sample.id]])
+    }
     
-    new.pData[[sample.id]]$sample = sample.id
+    #add_and checkrownames
+    if(length(filtered.cds.list)>1){
+      fdat_rownames<-lapply(filtered.cds.list, function(cds) rownames(fData(cds)))
+      if(!all.identical(fdat_rownames))stop("Not all genes are the same across samples")
+    }
+    #make fData
+    common.fData = fData(unfiltered.cds.list[[sample.ids[1]]])
+    names(unfiltered.cds.list)<-names(sample.ids)
+    #make pData
+    new.pData = list()
+    for (sample.id in names(sample.ids)) {
+      new.pData[[sample.id]] = pData(unfiltered.cds.list[[sample.id]])
+      
+      new.pData[[sample.id]]$sample = sample.id
+      
+      new.pData[[sample.id]]$cell = paste(
+        sample.id, new.pData[[sample.id]]$barcode, sep = ".")
+      
+      rownames(new.pData[[sample.id]]) = new.pData[[sample.id]]$cell
+    }
+    #make exprsData
+    new.exprs = list()
+    for (sample.id in names(sample.ids)) {
+      new.exprs[[sample.id]] = exprs(unfiltered.cds.list[[sample.id]])
+      colnames(new.exprs[[sample.id]]) = new.pData[[sample.id]]$cell
+    }
     
-    new.pData[[sample.id]]$cell = paste(
-      sample.id, new.pData[[sample.id]]$barcode, sep = ".")
-    
-    rownames(new.pData[[sample.id]]) = new.pData[[sample.id]]$cell
+    #combine
+    combined.pData = do.call(rbind, new.pData)
+    combined.pData = combined.pData[, c("barcode", "n.umi",  "sample")]
+    rownames(combined.pData) = paste0(combined.pData$sample, ".", combined.pData$barcode)
+    combined.exprs = do.call(cbind, new.exprs)
+    cds_unfilt = new_cell_data_set(
+      combined.exprs,
+      cell_metadata =  combined.pData,
+      gene_metadata = common.fData
+    )
+    if(expressed_genes){
+      cds_unfilt<-detect_genes(cds_unfilt, exprs_bin = F)
+      cds_unfilt<-cds_unfilt[fData(cds_unfilt)$num_cells_expressed>cell_min,]
+    }
+    if(unfiltered){return(list(unfiltered_cds=cds_unfilt, filtered_cds=cds))}
   }
-  #make exprsData
-  new.exprs = list()
-  for (sample.id in names(sample.ids)) {
-    new.exprs[[sample.id]] = exprs(unfiltered.cds.list[[sample.id]])
-    colnames(new.exprs[[sample.id]]) = new.pData[[sample.id]]$cell
-  }
-  
-  #combine
-  combined.pData = do.call(rbind, new.pData)
-  combined.pData = combined.pData[, c("barcode", "n.umi",  "sample")]
-  rownames(combined.pData) = paste0(combined.pData$sample, ".", combined.pData$barcode)
-  combined.exprs = do.call(cbind, new.exprs)
-  cds_unfilt = new_cell_data_set(
-    combined.exprs,
-    cell_metadata =  combined.pData,
-    gene_metadata = common.fData
-  )
-  if(expressed_genes){
-    cds_unfilt<-detect_genes(cds_unfilt, exprs_bin = F)
-    cds_unfilt<-cds_unfilt[fData(cds_unfilt)$num_cells_expressed>cell_min,]
-  }
-  if(unfiltered){return(list(unfiltered_cds=cds_unfilt, filtered_cds=cds))}
 }
 
 
