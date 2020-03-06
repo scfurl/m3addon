@@ -2,11 +2,12 @@
 #' @import hdf5r
 #' @importFrom Matrix sparseMatrix
 read.cds.cellranger.h5.file = function(h5.file) {
-  
+  if(!file.exists(h5.file)){stop(paste0("File ", h5.file," not found"))}
   #s<-h5file(h5.file, mode="r")
   s <- H5File$new(h5.file, mode="r+")
 
-  #s$ls(recursive=TRUE)
+  #s$ls(recursive=T)
+
   barcodes = s[["matrix/barcodes"]][]
   gene_ids = s[["matrix/features/id"]][]
   gene_names =s[["matrix/features/name"]][]
@@ -255,8 +256,8 @@ load_cellranger_data_h5<-function(folders,
       names(sample.ids)<-samplenames
     }
     if(!atac_feature %in% c("peaks", "tfs"))stop("Currently only peak and tf data supported")
-    if(atac_feature=="peaks"){h5file<="filtered_peak_bc_matrix.h5"}
-    if(atac_feature=="tfs"){h5file<="filtered_tf_bc_matrix.h5"}
+    if(atac_feature=="peaks"){h5file<-"filtered_peak_bc_matrix.h5"}
+    if(atac_feature=="tfs"){h5file<-"filtered_tf_bc_matrix.h5"}
     ######filt
     #read filtered data
     filtered.cds.list<-list()
