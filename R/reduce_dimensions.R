@@ -217,7 +217,7 @@ iterative_LSI <- function(cds,
   matNorm <- t(t(mat)/Matrix::colSums(mat)) * scaleTo
   matNorm@x <- log2(matNorm@x + 1)
   message("Performing LSI/SDF for iteration 1....")
-  tf<-tf_idf_transform(mat[head(order(sparseRowVariances(matNorm),decreasing=TRUE), topN),])
+  tf<-tf_idf_transform(mat[head(order(computeSparseRowVariances(matNorm),decreasing=TRUE), topN),])
   tf@x[is.na(tf@x)] <- 0
   matSVD<-svd_lsi(tf, num_dim)
   cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
