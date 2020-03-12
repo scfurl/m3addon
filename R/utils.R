@@ -29,17 +29,41 @@ common_features <- function(cds_list){
 #'
 #' @description Just like it sounds.
 #'
-#' @param cds_list Input cell_data_set object.
+#' @param cds_list Input cell_data_set object or sparse matrix.
 #' @import Matrix
 #' @export
-tf_idf_transform <- function(cds){
-  idf <- log( ncol(exprs(cds)) / ( 1 + Matrix::rowSums(exprs(cds) != 0) ) )
+tf_idf_transform <- function(input){
+  if(class(input)=="cell_data_set"){
+    mat<-exprs(input)
+  }else{
+    mat<-input
+  }
+  idf <- log( ncol(mat) / ( 1 + Matrix::rowSums(mat != 0) ) )
   idf<-.sparseDiagonal(x=idf)
-  tf_idf <- crossprod(exprs(cds), idf)
-  colnames(tf_idf) <- rownames(exprs(cds))
+  tf_idf <- crossprod(mat, idf)
+  colnames(tf_idf) <- rownames(mat)
   tf_idf_out<-Matrix::t(tf_idf / sqrt( Matrix::rowSums( tf_idf^2 ) ))
-  cds@assays$data$counts<-tf_idf_out
-  return(cds)
+  if(class(input)=="cell_data_set"){
+    input@assays$data$counts<-tf_idf_out
+    return(input)
+  }else{
+    return(tf_idf_out)
+  }
+}
+
+#' @export
+svd_lsi<-function(sp_mat, num_dim, mat_only=T){
+  svd <- irlba::irlba(sp_mat, num_dim, num_dim)
+  svdDiag <- matrix(0, nrow=num_dim, ncol=num_dim)
+  diag(svdDiag) <- svd$d
+  matSVD <- t(svdDiag %*% t(svd$v))
+  rownames(matSVD) <- colnames(sp_mat)
+  colnames(matSVD) <- seq_len(ncol(matSVD))
+  if(mat_only){
+    return(matSVD)
+  }else{
+    return(list(matSVD=matSVD, svd=svd))
+  }
 }
 
 

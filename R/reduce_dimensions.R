@@ -156,3 +156,97 @@ reduce_dimension <- function(cds,
   cds
 }
 
+
+
+
+#' Iterative LSI
+#'
+#' @description This function aims to both minimize batch effects and accentuate
+#' cell type differences in a single cell experiment.  This function was implemented
+#' using Monocle3 but takes inspiration from the Granja et. al. reference cited below which took inspiration from the fly ATAC paper. At it's heart
+#' this function iterates through three main steps: 1) Using TFIDF transformation and SVD
+#' to normalize data 2) Clustering this normalized data using leiden clustering in high dimensional
+#' space and 3) identifying those features that are over-represented in the resulting clusters using
+#' a simple counting method.  These three steps are repeated using features identified in step 3 to subset 
+#' the normalization matrix in step 1 and repeating through the process.  TFIDF transformation is 
+#' supplied in this package.  SVD is performed using the irilba package.  Leiden clustering is performed using
+#' the monocle3 implementation and finally the counting per cluster is performed using the edgeR cpm function.  This
+#' function takes as its input a cell_data_set and will iterate through n number of iterations.  The output of this function
+#' is then appropriately input into dimensionality reduction methods such as UMAP or tSNE.  The number of iterations
+#' is set by the number of resolution parameters specified.
+#' 
+#' @param cds the cell_data_set upon which to perform this operation.
+#' @param num_dim Numeric indicating the number of prinicipal components to be 
+#'    in downstream ordering.  Default value is NULL which will result in use 
+#'    of all PCs
+#' @param resolution vector of resolution values for leiden clustering
+#' @param binarize boolean whether to binarize data prior to TFIDF transformation
+#' @param nFeatures number of features to use for dimensionality reduction (default 3000).  To use different numbers
+#' of features for different iterations, supply a vector that is the same length as the resolution vector.
+#' @return an updated cell_data_set object with a reduced dimension LSI object and clusters object
+#' @references Granja, J. M.et al. (2019). Single-cell multiomic analysis identifies regulatory programs in mixed-phenotype 
+#' acute leukemia. Nature Biotechnology, 37(12), 1458–1465.
+#' @references UMAP: McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation
+#'   and Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
+#' @references tSNE: Laurens van der Maaten and Geoffrey Hinton. Visualizing
+#'   data using t-SNE. J. Mach. Learn. Res., 9(Nov):2579– 2605, 2008.
+#' @references Cusanovich, D. A., Reddington, J. P., Garfield, D. A., Daza, R. M., Aghamirzaie, D., Marco-Ferreres, R., et al. (2018). The 
+#'   cis-regulatory dynamics of embryonic development at single-cell resolution. Nature, 555(7697), 538–542.
+#' @export
+iterative_LSI <- function(cds,
+                             num_dim=25,
+                          resolution=c(1e-4, 3e-4, 5e-4),
+                          nFeatures=c(3000,3000,3000), 
+                          binarize=FALSE,
+                          seed=2020, scaleTo = 10000, leiden_k=20, leiden_weight=FALSE, leiden_iter=1, verbose=F,
+                          ...){
+  extra_arguments <- list(...)
+  if(length(resolution)<2){
+    stop("This method is intended to iterate.  Adjust number of resolution elements and retry")
+  }
+  if(length(nFeatures)!=length(resolution)){
+    message("Numbers of elements for resolution and nFeatures do not match.  Will use nFeatures[1]...")
+    nFeatures<-rep(nFeatures, length(resolution))
+  }
+  mat<-assay(cds)
+  set.seed(seed)
+  if(binarize){
+    message("Binarizing...")
+    mat@x[mat@x > 0] <- 1
+  }
+  matNorm <- t(t(mat)/Matrix::colSums(mat)) * scaleTo
+  matNorm@x <- log2(matNorm@x + 1)
+  message("Performing LSI/SDF for iteration 1....")
+  tf<-tf_idf_transform(mat[head(order(sparseRowVariances(matNorm),decreasing=TRUE), topN),])
+  tf@x[is.na(tf@x)] <- 0
+  matSVD<-svd_lsi(tf, num_dim)
+  cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
+                                      pd = pData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
+                                      resolution_parameter = resolution[1], random_seed = seed, 
+                                      verbose = verbose, ...)
+  clusterMat <- edgeR::cpm(groupSums(mat, factor(cluster_result$optim_res$membership), sparse = TRUE), log=TRUE, prior.count = 3)
+  for(iterations in 2:length(resolution)){
+    message("Performing LSI/SDF for iteration ", iterations, "....")
+    tf<-tf_idf_transform(mat[head(order(rowVars(clusterMat), decreasing=TRUE), topN),])
+    tf@x[is.na(tf@x)] <- 0
+    if(iterations!=length(resolution)){
+      matSVD<-svd_lsi(tf, num_dim, mat_only=TRUE)
+      cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
+                                                     pd = pData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
+                                                     resolution_parameter = resolution[iterations], random_seed = seed, 
+                                                     verbose = verbose, ...)
+      clusterMat <- edgeR::cpm(groupSums(mat, factor(cluster_result$optim_res$membership), sparse = TRUE), log=TRUE, prior.count = 3)
+    }else{
+      svd_list<-svd_lsi(tf, num_dim, mat_only=FALSE)
+      reducedDims(cds)[["LSI"]]<-svd_list$matSVD
+      irlba_rotation = svd_list$svd$v
+      row.names(irlba_rotation) = colnames(cds)
+      cds@preprocess_aux$gene_loadings = irlba_rotation
+      cds@clusters[["LSI"]]<- monocle3:::leiden_clustering(data = svd_list$matSVD, 
+                                                     pd = pData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
+                                                     resolution_parameter = resolution[iterations], random_seed = seed, 
+                                                     verbose = verbose, ...)
+    }
+  }
+  cds
+}
