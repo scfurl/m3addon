@@ -4,12 +4,21 @@
 \alias{doubletdetection}
 \title{Doublet Detection}
 \usage{
-doubletdetection(cds, python_home = system("which python", intern =
-  TRUE), module_file = paste(system.file(package = "m3addon"),
-  "doubletdetection.py", sep = "/"), boost_rate = 0.25,
-  n_components = 30, n_top_var_genes = 10000, use_phenograph = TRUE,
-  n_iters = 25, verbose = TRUE, standard_scaling = FALSE,
-  p_thresh = 1e-07, voter_thresh = 0.9)
+doubletdetection(
+  cds,
+  python_home = system("which python", intern = TRUE),
+  module_file = paste(system.file(package = "m3addon"), "doubletdetection.py", sep =
+    "/"),
+  boost_rate = 0.25,
+  n_components = 30,
+  n_top_var_genes = 10000,
+  use_phenograph = TRUE,
+  n_iters = 25,
+  verbose = TRUE,
+  standard_scaling = FALSE,
+  p_thresh = 1e-07,
+  voter_thresh = 0.9
+)
 }
 \arguments{
 \item{cds}{the CellDataSet upon which to perform Scrublet}

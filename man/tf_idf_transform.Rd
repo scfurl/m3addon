@@ -4,10 +4,10 @@
 \alias{tf_idf_transform}
 \title{Performs TF-IDF transformation on a cell_data_set}
 \usage{
-tf_idf_transform(cds)
+tf_idf_transform(input)
 }
 \arguments{
-\item{cds_list}{Input cell_data_set object.}
+\item{cds_list}{Input cell_data_set object or sparse matrix.}
 }
 \description{
 Just like it sounds.

@@ -4,8 +4,11 @@
 \alias{remove_duplicated_rows}
 \title{Removes data (collapses) with duplicated names}
 \usage{
-remove_duplicated_rows(cds, fdata_col = "gene_short_name",
-  unique_labels = "id")
+remove_duplicated_rows(
+  cds,
+  fdata_col = "gene_short_name",
+  unique_labels = "id"
+)
 }
 \arguments{
 \item{cds}{Input cell_data_set object.}

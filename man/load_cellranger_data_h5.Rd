@@ -4,9 +4,17 @@
 \alias{load_cellranger_data_h5}
 \title{Make monocle3 cell_data_set using cellranger h5}
 \usage{
-load_cellranger_data_h5(folders, samplenames = NULL, unfiltered = F,
-  empty.droplet.threshold = 15, expressed_genes = TRUE, cell_min = 1,
-  aggregated = F)
+load_cellranger_data_h5(
+  folders,
+  samplenames = NULL,
+  unfiltered = F,
+  empty.droplet.threshold = 15,
+  expressed_genes = TRUE,
+  cell_min = 1,
+  aggregated = F,
+  chemistry = "SC3Pv3",
+  atac_feature = "peaks"
+)
 }
 \arguments{
 \item{folders}{A vector of cellranger folders (full folder name is ideal).  These must contain an "outs" subfolders with

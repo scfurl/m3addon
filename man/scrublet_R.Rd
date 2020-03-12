@@ -4,10 +4,18 @@
 \alias{scrublet_R}
 \title{Scrublet}
 \usage{
-scrublet_R(cds, python_home = system("which python", intern = TRUE),
-  return_results_only = FALSE, min_counts = 2, min_cells = 3,
-  expected_doublet_rate = 0.06, min_gene_variability_pctl = 85,
-  n_prin_comps = 50, sim_doublet_ratio = 2, n_neighbors = NULL)
+scrublet_R(
+  cds,
+  python_home = system("which python", intern = TRUE),
+  return_results_only = FALSE,
+  min_counts = 2,
+  min_cells = 3,
+  expected_doublet_rate = 0.06,
+  min_gene_variability_pctl = 85,
+  n_prin_comps = 50,
+  sim_doublet_ratio = 2,
+  n_neighbors = NULL
+)
 }
 \arguments{
 \item{cds}{the CellDataSet upon which to perform Scrublet}
