@@ -67,3 +67,7 @@ iterateSparseMatrixCPP <- function(a) {
     invisible(.Call('_m3addon_iterateSparseMatrixCPP', PACKAGE = 'm3addon', a))
 }
 
+computeSparseRowVariances <- function(j, val, rm, n) {
+    .Call('_m3addon_computeSparseRowVariances', PACKAGE = 'm3addon', j, val, rm, n)
+}
+

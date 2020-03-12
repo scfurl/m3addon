@@ -171,8 +171,6 @@ void iterateSparseMatrixCPP(const arma::sp_mat& a) {
 using namespace Rcpp;
 using namespace std;
 // [[Rcpp::export]]
-
-// Taken from Granja, J. M.et al. (2019). Single-cell multiomic analysis identifies regulatory programs in mixed-phenotype acute leukemia. Nature Biotechnology, 37(12), 1458–1465.
 Rcpp::NumericVector computeSparseRowVariances(IntegerVector j, NumericVector val, NumericVector rm, int n) {
   const int nv = j.size();
   const int nm = rm.size();
