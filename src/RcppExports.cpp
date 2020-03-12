@@ -124,6 +124,20 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// computeSparseRowVariances
+Rcpp::NumericVector computeSparseRowVariances(IntegerVector j, NumericVector val, NumericVector rm, int n);
+RcppExport SEXP _m3addon_computeSparseRowVariances(SEXP jSEXP, SEXP valSEXP, SEXP rmSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type j(jSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type val(valSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type rm(rmSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeSparseRowVariances(j, val, rm, n));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_m3addon_calcKNNgraph_pearson", (DL_FUNC) &_m3addon_calcKNNgraph_pearson, 2},
@@ -136,6 +150,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_m3addon_rowStdDev", (DL_FUNC) &_m3addon_rowStdDev, 1},
     {"_m3addon_vstExprsCPP", (DL_FUNC) &_m3addon_vstExprsCPP, 5},
     {"_m3addon_iterateSparseMatrixCPP", (DL_FUNC) &_m3addon_iterateSparseMatrixCPP, 1},
+    {"_m3addon_computeSparseRowVariances", (DL_FUNC) &_m3addon_computeSparseRowVariances, 4},
     {NULL, NULL, 0}
 };
 

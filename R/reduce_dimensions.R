@@ -217,7 +217,7 @@ iterative_LSI <- function(cds,
   matNorm <- t(t(mat)/Matrix::colSums(mat)) * scaleTo
   matNorm@x <- log2(matNorm@x + 1)
   message("Performing LSI/SDF for iteration 1....")
-  tf<-tf_idf_transform(mat[head(order(computeSparseRowVariances(matNorm),decreasing=TRUE), topN),])
+  tf<-tf_idf_transform(mat[head(order(sparseRowVariances(matNorm),decreasing=TRUE), nFeatures[1]),])
   tf@x[is.na(tf@x)] <- 0
   matSVD<-svd_lsi(tf, num_dim)
   cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
@@ -227,7 +227,7 @@ iterative_LSI <- function(cds,
   clusterMat <- edgeR::cpm(groupSums(mat, factor(cluster_result$optim_res$membership), sparse = TRUE), log=TRUE, prior.count = 3)
   for(iterations in 2:length(resolution)){
     message("Performing LSI/SDF for iteration ", iterations, "....")
-    tf<-tf_idf_transform(mat[head(order(rowVars(clusterMat), decreasing=TRUE), topN),])
+    tf<-tf_idf_transform(mat[head(order(rowVars(clusterMat), decreasing=TRUE), nFeatures[1]),])
     tf@x[is.na(tf@x)] <- 0
     if(iterations!=length(resolution)){
       matSVD<-svd_lsi(tf, num_dim, mat_only=TRUE)
@@ -251,30 +251,60 @@ iterative_LSI <- function(cds,
   cds
 }
 
+#' Helper function for summing sparse matrix groups
+#' @references Granja, J. M.et al. (2019). Single-cell multiomic analysis identifies regulatory programs in mixed-phenotype 
+#' acute leukemia. Nature Biotechnology, 37(12), 1458–1465.
+#' @export
+groupSums <- function (mat, groups = NULL, na.rm = TRUE, sparse = FALSE){
+  stopifnot(!is.null(groups))
+  stopifnot(length(groups) == ncol(mat))
+  gm <- lapply(unique(groups), function(x) {
+    if (sparse) {
+      Matrix::rowSums(mat[, which(groups == x), drop = F], na.rm = na.rm)
+    }
+    else {
+      rowSums(mat[, which(groups == x), drop = F], na.rm = na.rm)
+    }
+  }) %>% Reduce("cbind", .)
+  colnames(gm) <- unique(groups)
+  return(gm)
+}
 
-#Sparse Variances Rcpp
-Rcpp::sourceCpp(code='
-  #include <Rcpp.h>
-  using namespace Rcpp;
-  using namespace std;
-  // [[Rcpp::export]]
-  Rcpp::NumericVector computeSparseRowVariances(IntegerVector j, NumericVector val, NumericVector rm, int n) {
-    const int nv = j.size();
-    const int nm = rm.size();
-    Rcpp::NumericVector rv(nm);
-    Rcpp::NumericVector rit(nm);
-    int current;
-    // Calculate RowVars Initial
-    for (int i = 0; i < nv; ++i) {
-      current = j(i) - 1;
-      rv(current) = rv(current) + (val(i) - rm(current)) * (val(i) - rm(current));
-      rit(current) = rit(current) + 1;
-    }
-    // Calculate Remainder Variance
-    for (int i = 0; i < nm; ++i) {
-      rv(i) = rv(i) + (n - rit(i))*rm(i)*rm(i);
-    }
-    rv = rv / (n - 1);
-    return(rv);
-  }'
-)
+
+#' Helper function for summing sparse matrix groups
+#' @references Granja, J. M.et al. (2019). Single-cell multiomic analysis identifies regulatory programs in mixed-phenotype 
+#' acute leukemia. Nature Biotechnology, 37(12), 1458–1465.
+#' @export
+sparseRowVariances <- function (m){
+  rM <- Matrix::rowMeans(m)
+  rV <- computeSparseRowVariances(m@i + 1, m@x, rM, ncol(m))
+  return(rV)
+}
+# 
+# 
+# #Sparse Variances Rcpp
+# Rcpp::sourceCpp(code='
+#   #include <Rcpp.h>
+#   using namespace Rcpp;
+#   using namespace std;
+#   // [[Rcpp::export]]
+#   Rcpp::NumericVector computeSparseRowVariances(IntegerVector j, NumericVector val, NumericVector rm, int n) {
+#     const int nv = j.size();
+#     const int nm = rm.size();
+#     Rcpp::NumericVector rv(nm);
+#     Rcpp::NumericVector rit(nm);
+#     int current;
+#     // Calculate RowVars Initial
+#     for (int i = 0; i < nv; ++i) {
+#       current = j(i) - 1;
+#       rv(current) = rv(current) + (val(i) - rm(current)) * (val(i) - rm(current));
+#       rit(current) = rit(current) + 1;
+#     }
+#     // Calculate Remainder Variance
+#     for (int i = 0; i < nm; ++i) {
+#       rv(i) = rv(i) + (n - rit(i))*rm(i)*rm(i);
+#     }
+#     rv = rv / (n - 1);
+#     return(rv);
+#   }'
+# )
