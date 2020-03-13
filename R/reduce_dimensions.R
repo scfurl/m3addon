@@ -217,7 +217,7 @@ iterative_LSI <- function(cds,
   matNorm <- t(t(mat)/Matrix::colSums(mat)) * scaleTo
   matNorm@x <- log2(matNorm@x + 1)
   message("Performing LSI/SDF for iteration 1....")
-  tf<-tf_idf_transform(mat[head(order(sparseRowVariances(matNorm),decreasing=TRUE), nFeatures[1]),])
+  tf<-tf_idf_transform_v2(mat[head(order(sparseRowVariances(matNorm),decreasing=TRUE), nFeatures[1]),])
   tf@x[is.na(tf@x)] <- 0
   matSVD<-svd_lsi(tf, num_dim)
   cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
@@ -227,7 +227,7 @@ iterative_LSI <- function(cds,
   clusterMat <- edgeR::cpm(groupSums(mat, factor(cluster_result$optim_res$membership), sparse = TRUE), log=TRUE, prior.count = 3)
   for(iterations in 2:length(resolution)){
     message("Performing LSI/SDF for iteration ", iterations, "....")
-    tf<-tf_idf_transform(mat[head(order(rowVars(clusterMat), decreasing=TRUE), nFeatures[1]),])
+    tf<-tf_idf_transform_v2(mat[head(order(rowVars(clusterMat), decreasing=TRUE), nFeatures[1]),])
     tf@x[is.na(tf@x)] <- 0
     if(iterations!=length(resolution)){
       matSVD<-svd_lsi(tf, num_dim, mat_only=TRUE)
