@@ -1016,7 +1016,7 @@ plot_genes_violin<- function (cds_subset, grouping = "Cluster",
   }else{
     q <- q + ylab("Expression") + xlab(grouping)
   }
-  q <- q + monocle:::monocle_theme_opts()
+  q <- q + monocle3:::monocle_theme_opts()
   if(boxplot){
     q<-q + geom_boxplot(width=bwidth, fill=bcolor)
   }
