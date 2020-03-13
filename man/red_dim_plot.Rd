@@ -4,14 +4,9 @@
 \alias{red_dim_plot}
 \title{Reduced Dimensionality Plot}
 \usage{
-red_dim_plot(
-  plot,
-  method = "UMAP",
-  size = 20,
+red_dim_plot(plot, method = "UMAP", size = 20,
   ICON_DIR = system.file("icons", package = "m3addon"),
-  correction_x = 0,
-  correction_y = 0
-)
+  correction_x = 0, correction_y = 0)
 }
 \arguments{
 \item{plot}{A ggplot2 object}

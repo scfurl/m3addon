@@ -4,22 +4,10 @@
 \alias{mnnCorrect_cds}
 \title{Performs mNN batch correction on PCA data from a cds}
 \usage{
-mnnCorrect_cds(
-  cds,
-  batch_term,
-  fast = TRUE,
-  k = 20,
-  sigma = 0.1,
-  cos.norm.in = TRUE,
-  cos.norm.out = TRUE,
-  svd.dim = 0L,
-  var.adj = TRUE,
-  compute.angle = FALSE,
-  subset.row = NULL,
-  order = NULL,
-  pc.approx = FALSE,
-  irlba.args = list()
-)
+mnnCorrect_cds(cds, batch_term, fast = TRUE, k = 20, sigma = 0.1,
+  cos.norm.in = TRUE, cos.norm.out = TRUE, svd.dim = 0L,
+  var.adj = TRUE, compute.angle = FALSE, subset.row = NULL,
+  order = NULL, pc.approx = FALSE, irlba.args = list())
 }
 \arguments{
 \item{cds}{Input cell_data_set object.}

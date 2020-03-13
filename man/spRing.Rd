@@ -5,7 +5,8 @@
 \title{spRing
 Execute the spRing algorithm}
 \usage{
-spRing(x, k = 10, method = "pearson", knngraph = FALSE, igraph = FALSE)
+spRing(x, k = 10, method = "pearson", knngraph = FALSE,
+  igraph = FALSE)
 }
 \arguments{
 \item{x}{Data matrix}

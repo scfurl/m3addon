@@ -4,20 +4,10 @@
 \alias{enrichmentPlot}
 \title{GSEA and plot}
 \usage{
-enrichmentPlot(
-  pathway,
-  stats,
-  gseaParam = 1,
-  rug = T,
-  dot_enhance = "darkgrey",
-  dot_enhance_size = 2,
-  dot_shape = 21,
-  dot_enhance_alpha = 0.7,
-  dot_size = 1,
-  return_data = FALSE,
-  print_plot = FALSE,
-  return_plot = TRUE
-)
+enrichmentPlot(pathway, stats, gseaParam = 1, rug = T,
+  dot_enhance = "darkgrey", dot_enhance_size = 2, dot_shape = 21,
+  dot_enhance_alpha = 0.7, dot_size = 1, return_data = FALSE,
+  print_plot = FALSE, return_plot = TRUE)
 }
 \arguments{
 \item{pathway}{= vector (or list) of genes.  Names of list will define plot coloring.}

@@ -4,19 +4,10 @@
 \alias{backspin}
 \title{Backspin}
 \usage{
-backspin(
-  data,
-  numLevels = 2,
-  first_run_iters = 10,
-  first_run_step = 0.05,
-  runs_iters = 8,
-  runs_step = 0.25,
-  split_limit_g = 2,
-  split_limit_c = 2,
-  stop_const = 1.15,
-  low_thrs = 0.2,
-  verbose = T
-)
+backspin(data, numLevels = 2, first_run_iters = 10,
+  first_run_step = 0.05, runs_iters = 8, runs_step = 0.25,
+  split_limit_g = 2, split_limit_c = 2, stop_const = 1.15,
+  low_thrs = 0.2, verbose = T)
 }
 \arguments{
 \item{data}{Rows should be genes and columns single cells/samples.}

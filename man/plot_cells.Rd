@@ -4,32 +4,17 @@
 \alias{plot_cells}
 \title{Plots the cells along with their trajectories.}
 \usage{
-plot_cells(
-  cds,
-  x = 1,
-  y = 2,
-  reduction_method = c("UMAP", "tSNE", "PCA", "LSI", "spRing", "trimap"),
-  color_cells_by = "cluster",
-  cluster_reduction_method = c("UMAP", "tSNE", "PCA", "LSI", "spRing", "trimap"),
-  group_cells_by = c("cluster", "partition"),
-  genes = NULL,
-  show_trajectory_graph = TRUE,
-  trajectory_graph_color = "grey28",
-  trajectory_graph_segment_size = 0.75,
-  norm_method = c("log", "size_only"),
-  label_cell_groups = TRUE,
-  label_groups_by_cluster = TRUE,
-  group_label_size = 2,
-  labels_per_group = 1,
-  label_branch_points = TRUE,
-  label_roots = TRUE,
-  label_leaves = TRUE,
-  graph_label_size = 2,
-  cell_size = 0.35,
-  alpha = 1,
-  min_expr = 0.1,
-  rasterize = FALSE
-)
+plot_cells(cds, x = 1, y = 2, reduction_method = c("UMAP", "tSNE",
+  "PCA", "LSI", "spRing", "trimap"), color_cells_by = "cluster",
+  cluster_reduction_method = c("UMAP", "tSNE", "PCA", "LSI", "spRing",
+  "trimap"), group_cells_by = c("cluster", "partition"), genes = NULL,
+  show_trajectory_graph = TRUE, trajectory_graph_color = "grey28",
+  trajectory_graph_segment_size = 0.75, norm_method = c("log",
+  "size_only"), label_cell_groups = TRUE,
+  label_groups_by_cluster = TRUE, group_label_size = 2,
+  labels_per_group = 1, label_branch_points = TRUE,
+  label_roots = TRUE, label_leaves = TRUE, graph_label_size = 2,
+  cell_size = 0.35, alpha = 1, min_expr = 0.1, rasterize = FALSE)
 }
 \arguments{
 \item{cds}{cell_data_set for the experiment}

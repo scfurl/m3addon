@@ -51,6 +51,33 @@ tf_idf_transform <- function(input){
   }
 }
 
+#' Performs TF-IDF transformation on a cell_data_set v2
+#'
+#' @description Just like it sounds but different.
+#'
+#' @param cds_list Input cell_data_set object or sparse matrix.
+#' @import Matrix
+#' @export
+tf_idf_transform_v2 <- function(input){
+  if(class(input)=="cell_data_set"){
+    mat<-exprs(input)
+  }else{
+    mat<-input
+  }
+  colSm <- Matrix::colSums(mat)
+  rowSm <- Matrix::rowSums(mat)
+  freqs <- t(t(mat)/colSm)
+  idf   <- as(log(1 + ncol(mat) / rowSm), "sparseVector")
+  tfidf <- as(Matrix::Diagonal(x=as.vector(idf)), "sparseMatrix") %*% freqs
+  tfidf@x[is.na(tfidf@x)] <- 0
+  if(class(input)=="cell_data_set"){
+    input@assays$data$counts<-tfidf
+    return(input)
+  }else{
+    return(tfidf)
+  }
+}
+
 #' @export
 svd_lsi<-function(sp_mat, num_dim, mat_only=T){
   svd <- irlba::irlba(sp_mat, num_dim, num_dim)

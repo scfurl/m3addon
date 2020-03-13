@@ -4,20 +4,10 @@
 \alias{iterative_LSI}
 \title{Iterative LSI}
 \usage{
-iterative_LSI(
-  cds,
-  num_dim = 25,
-  resolution = c(1e-04, 3e-04, 5e-04),
-  nFeatures = c(3000, 3000, 3000),
-  binarize = FALSE,
-  seed = 2020,
-  scaleTo = 10000,
-  leiden_k = 20,
-  leiden_weight = FALSE,
-  leiden_iter = 1,
-  verbose = F,
-  ...
-)
+iterative_LSI(cds, num_dim = 25, resolution = c(1e-04, 3e-04, 5e-04),
+  nFeatures = c(3000, 3000, 3000), binarize = FALSE, seed = 2020,
+  scaleTo = 10000, leiden_k = 20, leiden_weight = FALSE,
+  leiden_iter = 1, verbose = F, ...)
 }
 \arguments{
 \item{cds}{the cell_data_set upon which to perform this operation.}

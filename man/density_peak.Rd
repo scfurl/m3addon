@@ -4,14 +4,9 @@
 \alias{density_peak}
 \title{Cluster cells using Density Peak algorithm}
 \usage{
-density_peak(
-  cds,
-  rho = NULL,
-  delta = NULL,
-  reduction_method = c("UMAP", "tSNE"),
-  gaussian = T,
-  pData_col = "Cluster"
-)
+density_peak(cds, rho = NULL, delta = NULL,
+  reduction_method = c("UMAP", "tSNE"), gaussian = T,
+  pData_col = "Cluster")
 }
 \arguments{
 \item{cds}{the cell_data_set upon which to perform this operation}

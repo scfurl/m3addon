@@ -3,6 +3,7 @@
 \docType{package}
 \name{m3addon}
 \alias{m3addon}
+\alias{m3addon-package}
 \title{m3addon}
 \description{
 add on monocle3
