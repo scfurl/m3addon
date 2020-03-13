@@ -24,8 +24,7 @@ Imports:
   matrixStats (>= 0.5),
   reshape2 (>= 1.3),
   batchelor (>= 1.0),
-  fields (>= 9.0),
-  modes (>= 0.7)
+  fields (>= 9.0)
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 7.0.2
 Encoding: UTF-8
