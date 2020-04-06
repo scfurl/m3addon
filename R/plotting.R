@@ -193,7 +193,8 @@ plot_cells <- function(cds,
                        cell_size=0.35,
                        alpha = 1,
                        min_expr=0.1,
-                       rasterize=FALSE) {
+                       rasterize=FALSE,
+                       legend_title_is_marker=TRUE) {
   reduction_method <- match.arg(reduction_method)
   cluster_reduction_method <- match.arg(cluster_reduction_method)
   assertthat::assert_that(methods::is(cds, "cell_data_set"))
@@ -457,12 +458,13 @@ plot_cells <- function(cds,
       }
     }
   }
-  
   if (!is.null(markers_exprs) && nrow(markers_exprs) > 0){
     data_df <- merge(data_df, markers_exprs, by.x="sample_name",
                      by.y="cell_id")
     data_df$value <- with(data_df, ifelse(value >= min_expr, value, NA))
     na_sub <- data_df[is.na(data_df$value),]
+    if (legend_title_is_marker)
+      expression_legend_label = as.character(markers_exprs$feature_label[1])
     if(norm_method == "size_only"){
       g <- ggplot(data=data_df, aes(x=data_dim_1, y=data_dim_2)) +
         plotting_func(aes(data_dim_1, data_dim_2), size=I(cell_size),
@@ -495,22 +497,22 @@ plot_cells <- function(cds,
     # don't color the cells
     if(color_cells_by %in% c("cluster", "partition")){
       if (is.null(data_df$cell_color)){
-        g <- g + geom_point(color=I("gray"), size=I(cell_size), na.rm = TRUE,
+        g <- g + geom_point(color=I("gray"), size=I(cell_size), stroke = I(cell_size / 2), na.rm = TRUE,
                             alpha = I(alpha))
         message(paste("cluster_cells() has not been called yet, can't",
                       "color cells by cluster"))
       } else{
-        g <- g + geom_point(aes(color = cell_color), size=I(cell_size),
+        g <- g + geom_point(aes(color = cell_color), size=I(cell_size), stroke = I(cell_size / 2), 
                             na.rm = TRUE, alpha = alpha)
       }
       g <- g + guides(color = guide_legend(title = color_cells_by,
                                            override.aes = list(size = 4)))
     } else if (class(data_df$cell_color) == "numeric"){
-      g <- g + geom_point(aes(color = cell_color), size=I(cell_size),
+      g <- g + geom_point(aes(color = cell_color), size=I(cell_size), stroke = I(cell_size / 2), 
                           na.rm = TRUE, alpha = alpha)
       g <- g + viridis::scale_color_viridis(name = color_cells_by, option="C")
     } else {
-      g <- g + geom_point(aes(color = cell_color), size=I(cell_size),
+      g <- g + geom_point(aes(color = cell_color), size=I(cell_size), stroke = I(cell_size / 2), 
                           na.rm = TRUE, alpha = alpha)
       g <- g + guides(color = guide_legend(title = color_cells_by,
                                            override.aes = list(size = 4)))
