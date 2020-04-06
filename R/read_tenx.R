@@ -449,7 +449,7 @@ load_STARsolo_data<-function(folders,
     for(sample.id in sample.ids){
       message(paste0("Reading (filtered) data for: ", sample.id))
       filtered.cds.list[[sample.id]] = read.cds.starsolo.file(
-        file.path(sample.id, "outs", count_method, "filtered"))
+        file.path(sample.id, count_method, "filtered"))
       pData(filtered.cds.list[[sample.id]])$n.umi<-colSums(exprs(filtered.cds.list[[sample.id]]))
     }
     
