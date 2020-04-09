@@ -186,7 +186,8 @@ calculate_gene_dispersion<-function(cds, q=3, id_tag="id", symbol_tag="gene_shor
   if(method=="m3addon"){
     m<-Matrix::rowMeans(counts(cds))
     # sd<-sqt(rowVars(as.matrix(counts(cds))))
-    sd<-m3addon:::rowStdDev(exprs(cds))[1,]
+    #sd<-m3addon:::rowStdDev(exprs(cds))[1,]
+    sd<-sparseRowVariances(counts(cds))
     fdat<-fData(cds)
     cv<-sd/m*100
     df<-data.frame(log_dispersion=log(cv), log_mean=log(m))
