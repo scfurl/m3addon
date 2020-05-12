@@ -23,7 +23,7 @@
 
 plot_grouped_geneset<-function(cds, marker_set, name, by, fData_col= "gene_short_name", scale="width", facet=NULL, adjust=1.4, size=0.05, alpha=0.1,
                    method="totals", overlay_violinandbox=T, box_width=0.3, rotate_x=T, jitter=T, return_values=F){
-  if(method=="totals") pData(cds)[[name]]<-estimate_score(cds, marker_setfData_col= fData_col)
+  if(method=="totals") pData(cds)[[name]]<-estimate_score(cds, marker_set, fData_col= fData_col)
   if(method=="corrected") pData(cds)[[name]]<-estimate_corrected_score(cds, marker_set, fData_col= fData_col)
   scores<-data.frame(pData(cds)[[name]], as.factor(pData(cds)[[by]]), stringsAsFactors = F)
   if(!is.null(facet)){
