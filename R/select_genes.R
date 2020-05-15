@@ -1,12 +1,13 @@
 #' @export
-plot_gene_dispersion<-function(cds){
+plot_gene_dispersion<-function(cds, size=1, alpha=0.4){
   if(is.null(cds@int_metadata$dispersion$disp_func)){
     prd<-cds@int_metadata$dispersion
+    prd$selected_genes<-prd$use_for_ordering
     g<-ggplot2::ggplot(prd, ggplot2::aes(x = log_mean, y = fit)) 
     if("use_for_ordering" %in% colnames(cds@int_metadata$dispersion)){
-      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=use_for_ordering), alpha=0.4)
+      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=slected_genes), alpha=alpha, size=size)
     }else{
-      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes( x=log_mean, y=log_dispersion, color="grey"), alpha=0.4)
+      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes( x=log_mean, y=log_dispersion), color="grey", alpha=alpha, size=size)
     }
     g<-g+
       ggplot2::theme_bw() +
@@ -21,10 +22,10 @@ plot_gene_dispersion<-function(cds){
     colnames(prd)<-c("log_mean", "log_dispersion", "gene_id", "fit")
     g<-ggplot2::ggplot(prd, ggplot2::aes(x = log_mean, y = fit)) 
     if("use_for_ordering" %in% names(cds@int_metadata$dispersion)){
-      prd$use_for_ordering = cds@int_metadata$dispersion$use_for_ordering
-      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=use_for_ordering, alpha=0.4))
+      prd$selected_genes = cds@int_metadata$dispersion$use_for_ordering
+      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=selected_genes, alpha=alpha), size=size)
     }else{
-      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes( x=log_mean, y=log_dispersion, color="grey", alpha=0.4))
+      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes( x=log_mean, y=log_dispersion, color="grey", alpha=alpha), size=size)
     }
     g<-g+
       ggplot2::theme_bw() +
@@ -96,6 +97,7 @@ select_genes<-function(cds, fit_min=1, fit_max=Inf, logmean_ul=Inf, logmean_ll=-
 
 #' @export
 get_ordering_genes<-function(cds, gene_column="id"){
+  warning("Depracated.  Use: 'set_ordering_genes'")
   if(is.null(cds@int_metadata$dispersion$disp_func)){
     as.character(cds@int_metadata$dispersion[[gene_column]][cds@int_metadata$dispersion$use_for_ordering])
   }else{
@@ -103,10 +105,36 @@ get_ordering_genes<-function(cds, gene_column="id"){
   }
 }
 
+#' @export
+get_selected_genes<-function(cds, gene_column="id"){
+  if(is.null(cds@int_metadata$dispersion$disp_func)){
+    as.character(cds@int_metadata$dispersion[[gene_column]][cds@int_metadata$dispersion$use_for_ordering])
+  }else{
+    as.character(cds@int_metadata$dispersion$disp_table[[gene_column]][cds@int_metadata$dispersion$use_for_ordering])
+  }
+}
 
+#' @export
+set_selected_genes<-function(cds, genes, gene_column="id", unique_column="id"){
+  if(is.null(cds@int_metadata$dispersion$disp_func)){
+    if(gene_column %in% colnames(cds@int_metadata$dispersion)){
+      cds@int_metadata$dispersion$use_for_ordering = cds@int_metadata$dispersion[[gene_column]] %in% genes
+    }
+    if(length(which(cds@int_metadata$dispersion$use_for_ordering))<1) warning("No ordering genes found")
+  }else{
+    if(gene_column %in% colnames(cds@int_metadata$dispersion$disp_table)){
+      cds@int_metadata$dispersion$use_for_ordering = cds@int_metadata$dispersion$disp_table[[gene_column]] %in% genes
+    }else{
+      found<-rownames(fData(cds))[fData(cds)[[gene_column]] %in% genes]
+      cds@int_metadata$dispersion$use_for_ordering = cds@int_metadata$dispersion$disp_table[[unique_column]] %in% found
+    }
+  }
+  cds
+}
 
 #' @export
 set_ordering_genes<-function(cds, genes, gene_column="id", unique_column="id"){
+  warning("Depracated.  Use: 'set_selected_genes'")
   if(is.null(cds@int_metadata$dispersion$disp_func)){
     if(gene_column %in% colnames(cds@int_metadata$dispersion)){
       cds@int_metadata$dispersion$use_for_ordering = cds@int_metadata$dispersion[[gene_column]] %in% genes
@@ -184,10 +212,9 @@ calculate_gene_dispersion<-function(cds, q=3, id_tag="id", symbol_tag="gene_shor
     return(cds)
   }
   if(method=="m3addon"){
-    m<-Matrix::rowMeans(counts(cds))
-    # sd<-sqt(rowVars(as.matrix(counts(cds))))
-    #sd<-m3addon:::rowStdDev(exprs(cds))[1,]
-    sd<-sqrt(sparseRowVariances(counts(cds)))
+    ncounts<-Matrix::t(Matrix::t(exprs(cds))/monocle3::size_factors(cds))
+    m<-Matrix::rowMeans(ncounts)
+    sd<-sqrt(sparseRowVariances(ncounts))
     fdat<-fData(cds)
     cv<-sd/m*100
     df<-data.frame(log_dispersion=log(cv), log_mean=log(m))
