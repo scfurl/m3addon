@@ -204,12 +204,12 @@ plot_cells <- function(cds,
                                       "Please run reduce_dimensions with",
                                       "reduction_method =", reduction_method,
                                       "before attempting to plot."))
-  assertthat::assert_that(!is.null(clusters(cds, cluster_reduction_method)),
-                          msg = paste("No dimensionality reduction for",
-                                      cluster_reduction_method, "calculated.",
-                                      "Please run cluster_cells with",
-                                      "reduction_method =", reduction_method,
-                                      "before attempting to plot."))
+  # assertthat::assert_that(!is.null(clusters(cds, cluster_reduction_method)),
+  #                         msg = paste("No dimensionality reduction for",
+  #                                     cluster_reduction_method, "calculated.",
+  #                                     "Please run cluster_cells with",
+  #                                     "reduction_method =", reduction_method,
+  #                                     "before attempting to plot."))
   low_dim_coords <- reducedDims(cds)[[reduction_method]]
   assertthat::assert_that(ncol(low_dim_coords) >=max(x,y),
                           msg = paste("x and/or y is too large. x and y must",
