@@ -102,8 +102,6 @@ project_bulk_data <- function(
 
   message(paste0("Overlap Ratio of Reduced Dims Features = ", round(overlap / total_sc_features, 3)))
   #dim(bulkMat)
-  cds@preprocess_aux$iLSI$features[1]
-  exprs(cds["chr1_2082673_2083173",])
   ##################################################
   # Simulate and Project
   ##################################################
