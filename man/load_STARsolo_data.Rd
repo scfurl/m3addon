@@ -4,9 +4,15 @@
 \alias{load_STARsolo_data}
 \title{Make monocle3 cell_data_set using STARsolo}
 \usage{
-load_STARsolo_data(folders, samplenames = NULL, unfiltered = F,
-  empty.droplet.threshold = 15, expressed_genes = TRUE,
-  count_method = "Gene", cell_min = 1)
+load_STARsolo_data(
+  folders,
+  samplenames = NULL,
+  unfiltered = F,
+  empty.droplet.threshold = 15,
+  expressed_genes = TRUE,
+  count_method = "Gene",
+  cell_min = 1
+)
 }
 \arguments{
 \item{folders}{A vector of STARsolo folders (full folder name is ideal).  These must contain an "outs" subfolders with

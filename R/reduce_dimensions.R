@@ -41,6 +41,7 @@
 #' @param umap.nn_method String indicating the nearest neighbor method to be
 #'   used by UMAP. Default is "annoy". See uwot package's
 #'   \code{\link[umap]{umap}} for details.
+#' @param umap.save_model path to save umap model. Default NULL (don't save a model); See uwot package's \code{\link[umap]{umap}} for details.
 #' @param cores Number of compute cores to use.
 #' @param verbose Logical, whether to emit verbose output.
 #' @param ... additional arguments to pass to the dimensionality reduction
@@ -62,8 +63,9 @@ reduce_dimension <- function(cds,
                              umap.n_neighbors = 15L,
                              umap.fast_sgd = FALSE,
                              umap.nn_method = "annoy",
-                             cores=1,
+                             umap.save_model = NULL,
                              verbose=FALSE,
+                             cores=1,
                              num_dim=NULL,
                              ...){
   extra_arguments <- list(...)
@@ -132,7 +134,14 @@ reduce_dimension <- function(cds,
   } else if (reduction_method == c("UMAP")) {
     if (verbose)
       message("Running Uniform Manifold Approximation and Projection")
-    
+    if(is.null(umap.save_model))
+      {
+        umap.ret_model=F
+        umap.ret_nn = F
+    }else{
+        umap.ret_model=T
+        umap.ret_nn = T
+      }
     umap_res = uwot::umap(as.matrix(preprocess_mat),
                           n_components = max_components,
                           metric = umap.metric,
@@ -142,10 +151,19 @@ reduce_dimension <- function(cds,
                           n_threads=cores,
                           verbose=verbose,
                           nn_method = umap.nn_method,
+                          ret_model = umap.ret_model,
+                          ret_nn = umap.ret_nn,
                           ...)
     
-    row.names(umap_res) <- colnames(cds)
-    reducedDims(cds)$UMAP <- umap_res
+    
+    if(!umap.ret_model) {
+      row.names(umap_res) <- colnames(cds)
+      reducedDims(cds)$UMAP <- umap_res
+    }else{
+      reducedDims(cds)$UMAP <- umap_res$embedding
+      model_file <- save_umap_model(umap_res, umap.save_model)
+      cds@reduce_dim_aux <-SimpleList(UMAP=SimpleList(embedding=umap_res$embedding, scale_info=umap_res$scale_info, model_file=model_file))
+    }
   }
   
   ## Clear out any old graphs:
@@ -181,7 +199,9 @@ reduce_dimension <- function(cds,
 #'    of all PCs
 #' @param resolution vector of resolution values for leiden clustering
 #' @param binarize boolean whether to binarize data prior to TFIDF transformation
-#' @param nFeatures number of features to use for dimensionality reduction (default 3000).  To use different numbers
+#' @param scale_to numeric value to scale data
+#' @param seed numeric seed
+#' @param num_features number of features to use for dimensionality reduction (default 3000).  To use different numbers
 #' of features for different iterations, supply a vector that is the same length as the resolution vector.
 #' @return an updated cell_data_set object with a reduced dimension LSI object and clusters object
 #' @references Granja, J. M.et al. (2019). Single-cell multiomic analysis identifies regulatory programs in mixed-phenotype 
@@ -194,30 +214,34 @@ reduce_dimension <- function(cds,
 #'   cis-regulatory dynamics of embryonic development at single-cell resolution. Nature, 555(7697), 538–542.
 #' @export
 iterative_LSI <- function(cds,
-                             num_dim=25,
+                          num_dim=25,
                           resolution=c(1e-4, 3e-4, 5e-4),
-                          nFeatures=c(3000,3000,3000), 
+                          num_features=c(3000,3000,3000), 
                           binarize=FALSE,
-                          seed=2020, scaleTo = 10000, leiden_k=20, leiden_weight=FALSE, leiden_iter=1, verbose=F,
+                          LSI_method=1,
+                          seed=2020, scale_to = 10000, leiden_k=20, leiden_weight=FALSE, leiden_iter=1, verbose=F,
                           ...){
   extra_arguments <- list(...)
   if(length(resolution)<2){
     stop("This method is intended to iterate.  Adjust number of resolution elements and retry")
   }
-  if(length(nFeatures)!=length(resolution)){
-    message("Numbers of elements for resolution and nFeatures do not match.  Will use nFeatures[1]...")
-    nFeatures<-rep(nFeatures, length(resolution))
+  if(length(num_features)!=length(resolution)){
+    message("Numbers of elements for resolution and num_features do not match.  Will use num_features[1]...")
+    num_features<-rep(num_features, length(resolution))
   }
   mat<-assay(cds)
+  original_features<-rownames(mat)
   set.seed(seed)
   if(binarize){
     message("Binarizing...")
     mat@x[mat@x > 0] <- 1
   }
-  matNorm <- t(t(mat)/Matrix::colSums(mat)) * scaleTo
+  matNorm <- t(t(mat)/Matrix::colSums(mat)) * scale_to
   matNorm@x <- log2(matNorm@x + 1)
   message("Performing LSI/SDF for iteration 1....")
-  tf<-tf_idf_transform_v2(mat[head(order(sparseRowVariances(matNorm),decreasing=TRUE), nFeatures[1]),])
+  features<-head(order(sparseRowVariances(matNorm),decreasing=TRUE), num_features[1])
+  tf<-tf_idf_transform_v2(mat[,])
+  row_sums<-Matrix::rowSums(mat[features,])
   tf@x[is.na(tf@x)] <- 0
   matSVD<-svd_lsi(tf, num_dim)
   cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
@@ -225,26 +249,31 @@ iterative_LSI <- function(cds,
                                       resolution_parameter = resolution[1], random_seed = seed, 
                                       verbose = verbose, ...)
   clusterMat <- edgeR::cpm(groupSums(mat, factor(cluster_result$optim_res$membership), sparse = TRUE), log=TRUE, prior.count = 3)
-  for(iterations in 2:length(resolution)){
-    message("Performing LSI/SDF for iteration ", iterations, "....")
-    tf<-tf_idf_transform_v2(mat[head(order(rowVars(clusterMat), decreasing=TRUE), nFeatures[1]),])
+  for(iteration in 2:length(resolution)){
+    message("Performing LSI/SDF for iteration ", iteration, "....")
+    features<-head(order(rowVars(clusterMat), decreasing=TRUE), num_features[iteration])
+    tf<-tf_idf_transform_v2(mat[features,])
     tf@x[is.na(tf@x)] <- 0
-    if(iterations!=length(resolution)){
+    row_sums<-Matrix::rowSums(mat[features,])
+    if(iteration!=length(resolution)){
       matSVD<-svd_lsi(tf, num_dim, mat_only=TRUE)
       cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
                                                      pd = pData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
-                                                     resolution_parameter = resolution[iterations], random_seed = seed, 
+                                                     resolution_parameter = resolution[iteration], random_seed = seed, 
                                                      verbose = verbose, ...)
       clusterMat <- edgeR::cpm(groupSums(mat, factor(cluster_result$optim_res$membership), sparse = TRUE), log=TRUE, prior.count = 3)
     }else{
       svd_list<-svd_lsi(tf, num_dim, mat_only=FALSE)
       reducedDims(cds)[["LSI"]]<-svd_list$matSVD
-      irlba_rotation = svd_list$svd$v
-      row.names(irlba_rotation) = colnames(cds)
-      cds@preprocess_aux$gene_loadings = irlba_rotation
+      irlba_rotation = svd_list$svd$u
+      row.names(irlba_rotation) = original_features[features]
+      iLSI<-SimpleList(svd=svd_list$svd, features=original_features[features], row_sums = row_sums, seed=seed, binarize=binarize, scale_to=scale_to, num_dim=num_dim, resolution=resolution, num_features=num_features, LSI_method=LSI_method, outliers=NULL)
+      pp_aux <- SimpleList(iLSI=iLSI, gene_loadings=irlba_rotation)
+      # cds@preprocess_aux$gene_loadings = irlba_rotation
+      cds@preprocess_aux <- pp_aux
       cds@clusters[["LSI"]]<- monocle3:::leiden_clustering(data = svd_list$matSVD, 
                                                      pd = pData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
-                                                     resolution_parameter = resolution[iterations], random_seed = seed, 
+                                                     resolution_parameter = resolution[iteration], random_seed = seed, 
                                                      verbose = verbose, ...)
     }
   }
@@ -308,3 +337,117 @@ sparseRowVariances <- function (m){
 #     return(rv);
 #   }'
 # )
+
+#' @export
+save_umap_model<-function(model, file){
+  file <- file.path(normalizePath(dirname(file)), basename(file))
+  wd <- getwd()
+  mod_dir <- tempfile(pattern = "dir")
+  dir.create(mod_dir)
+  uwot_dir <- file.path(mod_dir, "uwot")
+  dir.create(uwot_dir)
+  model_tmpfname <- file.path(uwot_dir, "model")
+  saveRDS(model, file = model_tmpfname)
+  metrics <- names(model$metric)
+  n_metrics <- length(metrics)
+  for (i in seq_len(n_metrics)) {
+    nn_tmpfname <- file.path(uwot_dir, paste0("nn", i))
+    if (n_metrics == 1) {
+      model$nn_index$save(nn_tmpfname)
+      model$nn_index$unload()
+      model$nn_index$load(nn_tmpfname)
+    }
+    else {
+      model$nn_index[[i]]$save(nn_tmpfname)
+      model$nn_index[[i]]$unload()
+      model$nn_index[[i]]$load(nn_tmpfname)
+    }
+  }
+  setwd(mod_dir)
+  system2("tar", "-cvf uwot.tar uwot", stdout = NULL, stderr = NULL)
+  o <- file_rename("uwot.tar", file)
+  setwd(wd)
+  if (file.exists(mod_dir)) {
+    unlink(mod_dir, recursive = TRUE)
+  }
+  return(o)
+}
+
+#' @export
+file_rename<-function(from = NULL, to = NULL){
+  
+  if(!file.exists(from)){
+    stop("Input file does not exist!")
+  }
+  
+  tryCatch({
+    
+    o <- .suppressAll(file.rename(from, to))
+    
+    if(!o){
+      stop("retry with mv")
+    }
+    
+  }, error = function(x){
+    
+    tryCatch({
+      
+      system(paste0("mv '", from, "' '", to, "'"))
+      
+      return(to)
+      
+    }, error = function(y){
+      
+      stop("File Moving/Renaming Failed!")
+      
+    })
+    
+  })
+  
+}
+
+#' @export
+load_umap_model<-function(file, num_dim = NULL){
+  model <- NULL
+  tryCatch({
+    mod_dir <- tempfile(pattern = "dir")
+    dir.create(mod_dir)
+    utils::untar(file, exdir = mod_dir)
+    model_fname <- file.path(mod_dir, "uwot/model")
+    if (!file.exists(model_fname)) {
+      stop("Can't find model in ", file)
+    }
+    model <- readRDS(file = model_fname)
+    metrics <- names(model$metric)
+    n_metrics <- length(metrics)
+    for (i in seq_len(n_metrics)){
+      nn_fname <- file.path(mod_dir, paste0("uwot/nn", i))
+      if (!file.exists(nn_fname)) {
+        stop("Can't find nearest neighbor index ", nn_fname, " in ", file)
+      }
+      metric <- metrics[[i]]
+      if(length(model$metric[[i]]) == 0){
+        if(!is.null(num_dim)){
+          num_dim2 <- num_dim
+        }else{
+          num_dim2 <- length(model$metric[[i]])
+        }
+      }
+      if(!is.null(num_dim)){
+        num_dim2 <- num_dim
+      }
+      ann <- uwot:::create_ann(metric, ndim = num_dim2)
+      ann$load(nn_fname)
+      if (n_metrics == 1) {
+        model$nn_index <- ann
+      }else{
+        model$nn_index[[i]] <- ann
+      }
+    }
+  }, finally = {
+    if (file.exists(mod_dir)) {
+      unlink(mod_dir, recursive = TRUE)
+    }
+  })
+  model 
+}

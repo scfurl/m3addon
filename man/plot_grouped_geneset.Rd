@@ -4,11 +4,24 @@
 \alias{plot_grouped_geneset}
 \title{Plot geneset scores as summary plot}
 \usage{
-plot_grouped_geneset(cds, marker_set, name, by,
-  fData_col = "gene_short_name", scale = "width", facet = NULL,
-  adjust = 1.4, size = 0.05, alpha = 0.1, method = "totals",
-  overlay_violinandbox = T, box_width = 0.3, rotate_x = T,
-  jitter = T, return_values = F)
+plot_grouped_geneset(
+  cds,
+  marker_set,
+  name,
+  by,
+  fData_col = "gene_short_name",
+  scale = "width",
+  facet = NULL,
+  adjust = 1.4,
+  size = 0.05,
+  alpha = 0.1,
+  method = "totals",
+  overlay_violinandbox = T,
+  box_width = 0.3,
+  rotate_x = T,
+  jitter = T,
+  return_values = F
+)
 }
 \arguments{
 \item{cds}{Input cell_data_set object.}

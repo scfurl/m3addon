@@ -4,9 +4,16 @@
 \alias{loadSoupX}
 \title{Load Data for SoupX}
 \usage{
-loadSoupX(dataDir, cellIDs = NULL, channelName = NULL,
-  readArgs = list(), includeFeatures = c("Gene Expression"),
-  verbose = TRUE, method = c("SoupX_10X", "10X_H5", "STARsolo"), ...)
+loadSoupX(
+  dataDir,
+  cellIDs = NULL,
+  channelName = NULL,
+  readArgs = list(),
+  includeFeatures = c("Gene Expression"),
+  verbose = TRUE,
+  method = c("SoupX_10X", "10X_H5", "STARsolo"),
+  ...
+)
 }
 \arguments{
 \item{dataDir}{Top level cellranger output directory (the directory that contains the "raw_gene_bc_matrices" folder).}

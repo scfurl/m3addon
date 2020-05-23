@@ -5,12 +5,22 @@
 \title{Compute a projection of a cell_data_set object into a lower dimensional
 space with non-linear dimension reduction methods}
 \usage{
-reduce_dimension(cds, max_components = 2, reduction_method = c("UMAP",
-  "tSNE", "PCA"), preprocess_method = c("PCA", "LSI"),
-  umap.metric = "cosine", umap.min_dist = 0.1,
-  umap.n_neighbors = 15L, umap.fast_sgd = FALSE,
-  umap.nn_method = "annoy", cores = 1, verbose = FALSE,
-  num_dim = NULL, ...)
+reduce_dimension(
+  cds,
+  max_components = 2,
+  reduction_method = c("UMAP", "tSNE", "PCA"),
+  preprocess_method = c("PCA", "LSI"),
+  umap.metric = "cosine",
+  umap.min_dist = 0.1,
+  umap.n_neighbors = 15L,
+  umap.fast_sgd = FALSE,
+  umap.nn_method = "annoy",
+  umap.save_model = NULL,
+  verbose = FALSE,
+  cores = 1,
+  num_dim = NULL,
+  ...
+)
 }
 \arguments{
 \item{cds}{the cell_data_set upon which to perform this operation.}
@@ -43,9 +53,11 @@ TRUE. See uwot package's \code{\link[umap]{umap}} for details.}
 used by UMAP. Default is "annoy". See uwot package's
 \code{\link[umap]{umap}} for details.}
 
-\item{cores}{Number of compute cores to use.}
+\item{umap.save_model}{path to save umap model. Default NULL (don't save a model); See uwot package's \code{\link[umap]{umap}} for details.}
 
 \item{verbose}{Logical, whether to emit verbose output.}
+
+\item{cores}{Number of compute cores to use.}
 
 \item{num_dim}{Numeric indicating the number of prinicipal components to be 
 in downstream ordering.  Default value is NULL which will result in use 

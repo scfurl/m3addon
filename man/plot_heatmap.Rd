@@ -4,12 +4,26 @@
 \alias{plot_heatmap}
 \title{Plot heatmap of gene expression by group}
 \usage{
-plot_heatmap(cds, markers, sample_cell_num = NULL,
-  group_by = "Cluster", show_rownames = TRUE, gene_name_size = 8,
-  scale_max = 3, col_low = "cyan", col_mid = "black",
-  col_high = "red", scale_min = -3, minimal_cluster_fraction = NULL,
-  return_heatmap = FALSE, cluster_row = T, cluster_col = F,
-  verbose = FALSE, method = "ggplot", ...)
+plot_heatmap(
+  cds,
+  markers,
+  sample_cell_num = NULL,
+  group_by = "Cluster",
+  show_rownames = TRUE,
+  gene_name_size = 8,
+  scale_max = 3,
+  col_low = "cyan",
+  col_mid = "black",
+  col_high = "red",
+  scale_min = -3,
+  minimal_cluster_fraction = NULL,
+  return_heatmap = FALSE,
+  cluster_row = T,
+  cluster_col = F,
+  verbose = FALSE,
+  method = "ggplot",
+  ...
+)
 }
 \arguments{
 \item{cds}{Input cell_data_set object.}

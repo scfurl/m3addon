@@ -4,8 +4,14 @@
 \alias{select_genes}
 \title{Select genes in a cell_data_set for dimensionality reduction}
 \usage{
-select_genes(cds, fit_min = 1, fit_max = Inf, logmean_ul = Inf,
-  logmean_ll = -Inf, top_n = NULL)
+select_genes(
+  cds,
+  fit_min = 1,
+  fit_max = Inf,
+  logmean_ul = Inf,
+  logmean_ll = -Inf,
+  top_n = NULL
+)
 }
 \arguments{
 \item{cds}{the cell_data_set upon which to perform this operation.}

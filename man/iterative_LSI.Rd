@@ -4,10 +4,21 @@
 \alias{iterative_LSI}
 \title{Iterative LSI}
 \usage{
-iterative_LSI(cds, num_dim = 25, resolution = c(1e-04, 3e-04, 5e-04),
-  nFeatures = c(3000, 3000, 3000), binarize = FALSE, seed = 2020,
-  scaleTo = 10000, leiden_k = 20, leiden_weight = FALSE,
-  leiden_iter = 1, verbose = F, ...)
+iterative_LSI(
+  cds,
+  num_dim = 25,
+  resolution = c(1e-04, 3e-04, 5e-04),
+  num_features = c(3000, 3000, 3000),
+  binarize = FALSE,
+  LSI_method = 1,
+  seed = 2020,
+  scale_to = 10000,
+  leiden_k = 20,
+  leiden_weight = FALSE,
+  leiden_iter = 1,
+  verbose = F,
+  ...
+)
 }
 \arguments{
 \item{cds}{the cell_data_set upon which to perform this operation.}
@@ -18,10 +29,14 @@ of all PCs}
 
 \item{resolution}{vector of resolution values for leiden clustering}
 
-\item{nFeatures}{number of features to use for dimensionality reduction (default 3000).  To use different numbers
+\item{num_features}{number of features to use for dimensionality reduction (default 3000).  To use different numbers
 of features for different iterations, supply a vector that is the same length as the resolution vector.}
 
 \item{binarize}{boolean whether to binarize data prior to TFIDF transformation}
+
+\item{seed}{numeric seed}
+
+\item{scale_to}{numeric value to scale data}
 }
 \value{
 an updated cell_data_set object with a reduced dimension LSI object and clusters object

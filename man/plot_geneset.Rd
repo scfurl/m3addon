@@ -4,8 +4,14 @@
 \alias{plot_geneset}
 \title{Plot geneset scores as cells}
 \usage{
-plot_geneset(cds, marker_set, name, fData_col = "gene_short_name",
-  method = c("totals", "corrected"), reduction_method = "UMAP")
+plot_geneset(
+  cds,
+  marker_set,
+  name,
+  fData_col = "gene_short_name",
+  method = c("totals", "corrected"),
+  reduction_method = "UMAP"
+)
 }
 \arguments{
 \item{cds}{Input cell_data_set object.}

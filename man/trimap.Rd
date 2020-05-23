@@ -4,14 +4,25 @@
 \alias{trimap}
 \title{Dimensionality Reduction Using Triplet Constraints}
 \usage{
-trimap(cds, python_home = system("which python", intern = TRUE),
-  num_dims = NULL, module_file = paste(system.file(package =
-  "m3addon"), "trimap.py", sep = "/"), n_dims = 2, n_inliers = 10,
-  n_outliers = 5, n_random = 5, distance = c("euclidean",
-  "manhattan", "angular", "hamming"), lr = 1000, n_iters = 400,
-  knn_tuple = NULL, apply_pca_trimap = FALSE, opt_method = c("dbd",
-  "sd", "momentum"), verbose = TRUE, weight_adj = 500,
-  return_seq = FALSE)
+trimap(
+  cds,
+  python_home = system("which python", intern = TRUE),
+  num_dims = NULL,
+  module_file = paste(system.file(package = "m3addon"), "trimap.py", sep = "/"),
+  n_dims = 2,
+  n_inliers = 10,
+  n_outliers = 5,
+  n_random = 5,
+  distance = c("euclidean", "manhattan", "angular", "hamming"),
+  lr = 1000,
+  n_iters = 400,
+  knn_tuple = NULL,
+  apply_pca_trimap = FALSE,
+  opt_method = c("dbd", "sd", "momentum"),
+  verbose = TRUE,
+  weight_adj = 500,
+  return_seq = FALSE
+)
 }
 \arguments{
 \item{n_dims}{Number of dimensions of the embedding (default = 2)}
