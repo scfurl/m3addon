@@ -1,6 +1,6 @@
 #' Project Bulk RNA-seq data into single cell subspace
 #' 
-#' @description This function will Project Bulk RNA-seq data into single cell subspace. Adapted from: ArchR: An integrative and scalable software package for single-cell chromatin accessibility analysis
+#' @description This function will Project bulk sequencing data into single cell subspace. Adapted from: ArchR: An integrative and scalable software package for single-cell chromatin accessibility analysis
 #' Jeffrey M. Granja, M. Ryan Corces, Sarah E. Pierce, S. Tansu Bagdatli, Hani Choudhry, Howard Y. Chang, William J. Greenleaf
 #' doi: https://doi.org/10.1101/2020.04.28.066498
 #' 
@@ -29,60 +29,37 @@ project_bulk_data <- function(
   seed=2020
   
 ){
-  checkInput(input = cds, name = "cds", valid = c("cell_data_set"))
-  checkInput(input = se, name = "se", valid = c("SummarizedExperiment"))
-  checkInput(input = reduced_dim, name = "reduced_dim", valid = c("character"))
-  checkInput(input = embedding, name = "embedding", valid = c("character", "null"))
-  checkInput(input = n, name = "n", valid = c("integer"))
-  checkInput(input = verbose, name = "verbose", valid = c("boolean"))
-  checkInput(input = threads, name = "threads", valid = c("integer"))
-  checkInput(input = binarize, name = "binarize", valid = c("boolean"))
-  checkInput(input = force, name = "force", valid = c("boolean"))
-  
-  
+  check_input(input = cds, name = "cds", valid = c("cell_data_set"))
+  check_input(input = se, name = "se", valid = c("SummarizedExperiment"))
+  check_input(input = reduced_dim, name = "reduced_dim", valid = c("character"))
+  check_input(input = embedding, name = "embedding", valid = c("character", "null"))
+  check_input(input = n, name = "n", valid = c("integer"))
+  check_input(input = verbose, name = "verbose", valid = c("boolean"))
+  check_input(input = threads, name = "threads", valid = c("integer"))
+  check_input(input = binarize, name = "binarize", valid = c("boolean"))
+  check_input(input = force, name = "force", valid = c("boolean"))
   
   ##################################################
-  # Get Reduced Dimension
+  # Extract data from bulk
   ##################################################
-  rD <- reducedDims(cds)[[reduced_dim]]
   if(features[1] %in% "annotation-based"){
-    sub_se <- se[rownames(se) %in% cds@preprocess_aux$iLSI$features,]
-    overlap <- dim(sub_se)[1]
-    rows_in_bulk = cds@preprocess_aux$iLSI$features[cds@preprocess_aux$iLSI$features %in% row.names(sub_se)]
-    bulk_mat<-as.matrix(getAssay(sub_se[rows_in_bulk,]))
-    rownames(bulk_mat)<-rows_in_bulk
-    total_sc_features=length(cds@preprocess_aux$iLSI$features)
-    subset_rows<-cds@preprocess_aux$iLSI$features
-  }
-  #debug(getAssay)
-  if(features[1] %in% "range-based"){
-    rDGR <- cds@rowRanges[rownames(cds) %in% cds@preprocess_aux$iLSI$features]
-    scfeat<-cds@preprocess_aux$iLSI$features
-    # if("end" %in% colnames(rDFeatures)){
-    #   rDGR <- GRanges(seqnames=rDFeatures$seqnames,IRanges(start=rDFeatures$start, end=rDFeatures$end))
-    # }else{
-    #   rDGR <- GRanges(seqnames=rDFeatures$seqnames,IRanges(start=rDFeatures$start, width = (rDFeatures$start) / (rDFeatures$idx - 1)))
-    # }
-    sub_se <- subsetByOverlaps(se, rDGR, ignore.strand = TRUE)
-    #sub_se <- sub_se[order(rowSums(as.matrix(getAssay(sub_se, "counts"))), decreasing = TRUE), ]
-    o <- DataFrame(findOverlaps(sub_se, rDGR, ignore.strand = TRUE))
-    overlap <- length(unique(o[,2]))
-    o <- o[!duplicated(o$subjectHits),]
-    sub_se<-sub_se[o$queryHits, ]
-    bulkfeat<-rownames(sub_se)
-    rownames(sub_se) <- paste0("f", o$subjectHits)
-    bulk_mat <- as.matrix(getAssay(sub_se, "counts"))
-    rownames(bulk_mat)<-paste0("f", o$subjectHits)
-    subset_rows = paste0("f", seq_along(rDGR))
-    total_sc_features=length(rDGR)
-    bulk_mat<-round(bulk_mat)
+    query<-cds@preprocess_aux$iLSI$features
+    subject<-se
+    shared_rd<-extract_data(query, se)
   }
   
-  if(overlap == 0){
-    stop(paste0("No overlaps between bulk RNA data and reduce dimensions feature found.",
-                "\nEither recreate counts matrix or most likely these data sets are incompatible!"))
+  if(features[1] %in% "range-based"){
+    query<-cds@preprocess_aux$iLSI$Granges
+    subject<-se
+    shared_rd<-extract_data(query, se)
   }
-  if( (overlap / total_sc_features) < 0.25 ){
+  
+
+  message(paste0("Overlap Ratio of Reduced Dims Features = ", round(shared_rd$overlap, 3)))
+  #dim(bulk_mat)
+  
+
+  if( (shared_rd$overlap) < 0.25 ){
     if(force){
       warning("Less than 25% of the features are present in this bulk RNA data set! Continuing since force = TRUE!")
     }else{
@@ -90,18 +67,6 @@ project_bulk_data <- function(
     }
   }
   
-  ##################################################
-  # Create Bulk Matrix
-  ##################################################
-  #undebug(getAssay)
-  #undebug(safeSubset)
-  bulkMat <- safeSubset(
-    mat = bulk_mat, 
-    subsetRows = subset_rows)
-  #bm_sf<<-bulkMat
-
-  message(paste0("Overlap Ratio of Reduced Dims Features = ", round(overlap / total_sc_features, 3)))
-  #dim(bulkMat)
   ##################################################
   # Simulate and Project
   ##################################################
@@ -111,8 +76,8 @@ project_bulk_data <- function(
   ratios <- c(2, 1.5, 1, 0.5, 0.25) #range of ratios of number of fragments
   
   if(verbose) message(paste0("Simulating ", (n * dim(sub_se)[2]), " single cells"))
-  simRD <- pbmcapply::pbmclapply(seq_len(ncol(bulkMat)), function(x){
-    counts <- bulkMat[, x]
+  simRD <- pbmcapply::pbmclapply(seq_len(ncol(shared_rd$mat)), function(x){
+    counts <- shared_rd$mat[, x]
     counts <- rep(seq_along(counts), counts)
     simMat <- lapply(seq_len(nRep), function(y){
       ratio <- ratios[y]
@@ -121,9 +86,9 @@ project_bulk_data <- function(
       simMat[,1] <- simMat[,1] + (y - 1) * n2
       simMat
     }) %>%  Reduce("rbind", .)
-    simMat <- Matrix::sparseMatrix(i = simMat[,2], j = simMat[,1], x = rep(1, nrow(simMat)), dims = c(nrow(bulkMat), n2 * nRep))
+    simMat <- Matrix::sparseMatrix(i = simMat[,2], j = simMat[,1], x = rep(1, nrow(simMat)), dims = c(nrow(shared_rd$mat), n2 * nRep))
     simRD <- as.matrix(projectLSI(simMat, LSI = cds@preprocess_aux$iLSI, verbose = verbose))
-    rownames(simRD) <- paste0(colnames(bulkMat)[x], "#", seq_len(nrow(simRD)))
+    rownames(simRD) <- paste0(colnames(shared_rd$mat)[x], "#", seq_len(nrow(simRD)))
     simRD
   }, mc.cores =  threads) %>% Reduce("rbind", .)
   
@@ -232,193 +197,6 @@ project_bulk_data <- function(
   return(out)
 }
 
-#' @export
-checkInput<-function (input = NULL, name = NULL, valid = NULL) 
-{
-  valid <- unique(valid)
-  if (is.character(valid)) {
-    valid <- tolower(valid)
-  }
-  else {
-    stop("Validator must be a character!")
-  }
-  if (!is.character(name)) {
-    stop("name must be a character!")
-  }
-  if ("null" %in% tolower(valid)) {
-    valid <- c("null", valid[which(tolower(valid) != "null")])
-  }
-  av <- FALSE
-  for (i in seq_along(valid)) {
-    vi <- valid[i]
-    if (vi == "integer" | vi == "wholenumber") {
-      if (all(is.numeric(input))) {
-        cv <- min(abs(c(input%%1, input%%1 - 1))) < .Machine$double.eps^0.5
-      }
-      else {
-        cv <- FALSE
-      }
-    }
-    else if (vi == "null") {
-      cv <- is.null(input)
-    }
-    else if (vi == "bool" | vi == "boolean" | vi == "logical") {
-      cv <- is.logical(input)
-    }
-    else if (vi == "numeric") {
-      cv <- is.numeric(input)
-    }
-    else if (vi == "vector") {
-      cv <- is.vector(input)
-    }
-    else if (vi == "matrix") {
-      cv <- is.matrix(input)
-    }
-    else if (vi == "sparsematrix") {
-      cv <- is(input, "dgCMatrix")
-    }
-    else if (vi == "character") {
-      cv <- is.character(input)
-    }
-    else if (vi == "factor") {
-      cv <- is.factor(input)
-    }
-    else if (vi == "cell_data_set") {
-      cv <- is(input, "cell_data_set")
-    }
-    else if (vi == "rlecharacter") {
-      cv1 <- is(input, "Rle")
-      if (cv1) {
-        cv <- is(input@values, "factor") || is(input@values, 
-                                               "character")
-      }
-      else {
-        cv <- FALSE
-      }
-    }
-    else if (vi == "palette") {
-      cv <- all(.isColor(input))
-    }
-    else if (vi == "timestamp") {
-      cv <- is(input, "POSIXct")
-    }
-    else if (vi == "dataframe" | vi == "data.frame" | vi == 
-             "df") {
-      cv1 <- is.data.frame(input)
-      cv2 <- is(input, "DataFrame")
-      cv <- any(cv1, cv2)
-    }
-    else if (vi == "fileexists") {
-      cv <- all(file.exists(input))
-    }
-    else if (vi == "direxists") {
-      cv <- all(dir.exists(input))
-    }
-    else if (vi == "granges" | vi == "gr") {
-      cv <- is(input, "GRanges")
-    }
-    else if (vi == "grangeslist" | vi == "grlist") {
-      cv <- .isGRList(input)
-    }
-    else if (vi == "list" | vi == "simplelist") {
-      cv1 <- is.list(input)
-      cv2 <- is(input, "SimpleList")
-      cv <- any(cv1, cv2)
-    }
-    else if (vi == "bsgenome") {
-      cv1 <- is(input, "BSgenome")
-      cv2 <- tryCatch({
-        library(input)
-        eval(parse(text = input))
-      }, error = function(e) {
-        FALSE
-      })
-      cv <- any(cv1, cv2)
-    }
-    else if (vi == "se" | vi == "summarizedexperiment") {
-      cv <- is(input, "SummarizedExperiment")
-    }
-    else if (vi == "seurat" | vi == "seuratobject") {
-      cv <- is(input, "Seurat")
-    }
-    else if (vi == "txdb") {
-      cv <- is(input, "TxDb")
-    }
-    else if (vi == "orgdb") {
-      cv <- is(input, "OrgDb")
-    }
-    else if (vi == "bsgenome") {
-      cv <- is(input, "BSgenome")
-    }
-    else if (vi == "parallelparam") {
-      cv <- is(input, "BatchtoolsParam")
-    }
-    else {
-      stop("Validator is not currently supported")
-    }
-    if (cv) {
-      av <- TRUE
-      break
-    }
-  }
-  if (av) {
-    return(invisible(TRUE))
-  }
-  else {
-    stop("Input value for '", name, "' is not a ", paste(valid, 
-                                                         collapse = ","), ", (", name, " = ", class(input), 
-         ") please supply valid input!")
-  }
-}
-
-#' @export
-safeSubset<-function (mat = NULL, subsetRows = NULL, subsetCols = NULL) 
-{
-  if (!is.null(subsetRows)) {
-    idxNotIn <- which(!subsetRows %in% rownames(mat))
-    if (length(idxNotIn) > 0) {
-      subsetNamesNotIn <- subsetRows[idxNotIn]
-      matNotIn <- Matrix::sparseMatrix(i = 1, j = 1, x = 0, 
-                                       dims = c(length(idxNotIn), ncol = ncol(mat)))
-      dim(matNotIn)
-      dim(mat)
-      rownames(matNotIn) <- subsetNamesNotIn
-      mat <- rbind(mat, matNotIn)
-    }
-    mat <- mat[subsetRows, ]
-  }
-  if (!is.null(subsetCols)) {
-    idxNotIn <- which(subsetCols %ni% colnames(mat))
-    if (length(idxNotIn) > 0) {
-      subsetNamesNotIn <- subsetCols[idxNotIn]
-      matNotIn <- Matrix::sparseMatrix(i = 1, j = 1, x = 0, 
-                                       dims = c(nrow(mat), ncol = length(idxNotIn)))
-      colnames(matNotIn) <- subsetNamesNotIn
-      mat <- cbind(mat, matNotIn)
-    }
-    mat <- mat[, subsetCols]
-  }
-  mat
-}
-
-#' @export
-getAssay<-function (se = NULL, assayName = NULL) 
-{
-  .assayNames <- function(se) {
-    names(SummarizedExperiment::assays(se))
-  }
-  if (is.null(assayName)) {
-    o <- SummarizedExperiment::assay(se)
-  }
-  else if (assayName %in% .assayNames(se)) {
-    o <- SummarizedExperiment::assays(se)[[assayName]]
-  }
-  else {
-    stop(sprintf("assayName '%s' is not in assayNames of se : %s", 
-                 assayName, paste(.assayNames(se), collapse = ", ")))
-  }
-  return(o)
-}
 
 #' @export
 projectLSI<-function (mat = NULL, LSI = NULL, returnModel = FALSE, verbose = FALSE, seed=2020) 
