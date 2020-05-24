@@ -39,7 +39,9 @@ extract_data<-function(query,
   check_input(input = verbose, name = "verbose", valid = c("boolean"))
   check_input(input = fill_output, name = "fill_output", valid = c("boolean"))
   
-  # parse duplicate_hits
+  ##################################################
+  # parse duplicate_hits behavior
+  ################################################## 
   FUN<-get(strsplit(duplicate_hits, "\\.")[[1]][1])
   Var1<-strsplit(duplicate_hits, "\\.")[[1]][2]
   
@@ -49,7 +51,7 @@ extract_data<-function(query,
       se_sub <- subsetByOverlaps( subject, query, ignore.strand = ignore_strand, type="any")
       #Remove dups
       hits<-data.table::as.data.table(findOverlaps(query, se_sub, ignore.strand = TRUE))
-      dat<-as.matrix(getAssay(se_sub))
+      dat<-as.matrix(get_assay(se_sub))
       hits$var<-rowVars(dat)[hits$subjectHits]
       hits$mean<-rowMeans(dat)[hits$subjectHits]
       hits$disp<-sqrt(hits$var)/hits$mean*100
@@ -69,7 +71,10 @@ extract_data<-function(query,
           stop(paste0("No overlap between query and subject found."))
         }
         fs<-query
-        mat<-as.matrix(getAssay(subject))[fidx,]
+        mat<-as.matrix(get_assay(subject))[fidx,]
+        if(is.null(rownames(mat))){
+          rownames(mat)<-rownames(subject)[fidx]
+        }
         if(fill_output)  mat<-safe_subset(mat, subsetRows = fs)
         overlap<-length(fidx)/length(query)
         not_found<-query[!fidx %in% 1:length(query)]
@@ -81,7 +86,11 @@ extract_data<-function(query,
 }
 
 
-
+#'check_input helper
+#'
+#' @description
+#' Adapted from: Jeffrey M. Granja, M. Ryan Corces, Sarah E. Pierce, S. Tansu Bagdatli, Hani Choudhry, Howard Y. Chang, William J. Greenleaf
+#' doi: https://doi.org/10.1101/2020.04.28.066498
 #' @export
 check_input<-function (input = NULL, name = NULL, valid = NULL) 
 {
@@ -221,6 +230,12 @@ check_input<-function (input = NULL, name = NULL, valid = NULL)
   }
 }
 
+#' safe_subset helper
+#'
+#' @description
+#' Adapted from: Jeffrey M. Granja, M. Ryan Corces, Sarah E. Pierce, S. Tansu Bagdatli, Hani Choudhry, Howard Y. Chang, William J. Greenleaf
+#' doi: https://doi.org/10.1101/2020.04.28.066498
+#' 
 #' @export
 safe_subset<-function (mat = NULL, subsetRows = NULL, subsetCols = NULL) 
 {
@@ -251,6 +266,12 @@ safe_subset<-function (mat = NULL, subsetRows = NULL, subsetCols = NULL)
   mat
 }
 
+#' get_assay helper
+#'
+#' @description
+#' Adapted from: Jeffrey M. Granja, M. Ryan Corces, Sarah E. Pierce, S. Tansu Bagdatli, Hani Choudhry, Howard Y. Chang, William J. Greenleaf
+#' doi: https://doi.org/10.1101/2020.04.28.066498
+#' 
 #' @export
 get_assay<-function (se = NULL, assayName = NULL) 
 {

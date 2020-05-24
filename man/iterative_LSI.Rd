@@ -10,7 +10,6 @@ iterative_LSI(
   resolution = c(1e-04, 3e-04, 5e-04),
   num_features = c(3000, 3000, 3000),
   binarize = FALSE,
-  LSI_method = 1,
   seed = 2020,
   scale_to = 10000,
   leiden_k = 20,

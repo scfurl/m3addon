@@ -6,8 +6,9 @@
 #' 
 #' @param cds cell_data_set object
 #' @param se a bulk Summarized Experiment.
+#' @param ncells_coembedding number of true single cells to use in in the co-embedding with simulated single cells 
 #' @param reduced_dim A string specifying the reducedDim (currently LSI supported).
-#' @param embedding A string specifying embedding type (UMAP supported).
+#' @param embedding A string specifying embedding type (currently UMAP supported).
 #' @param n An integer specifying the number of subsampled "pseudo single cells" per bulk sample.
 #' @param verbose A boolean value indicating whether to use verbose output during execution of this function. Can be set to FALSE for a cleaner output.
 #' @param threads The number of threads used for parallel execution
@@ -16,7 +17,7 @@
 project_bulk_data <- function(
   cds = NULL,
   se = NULL,
-  embedding_ncells = 5000,
+  ncells_coembedding = 5000,
   scale=F,
   reduced_dim = "LSI",
   embedding = "UMAP",
@@ -24,41 +25,41 @@ project_bulk_data <- function(
   n = 250,
   verbose = TRUE,
   threads = 6,
-  force=F,
-  binarize=F,
   seed=2020
   
 ){
   check_input(input = cds, name = "cds", valid = c("cell_data_set"))
   check_input(input = se, name = "se", valid = c("SummarizedExperiment"))
+  check_input(input = ncells_coembedding , name = "ncells_coembedding ", valid = c("numeric"))
   check_input(input = reduced_dim, name = "reduced_dim", valid = c("character"))
   check_input(input = embedding, name = "embedding", valid = c("character", "null"))
   check_input(input = n, name = "n", valid = c("integer"))
   check_input(input = verbose, name = "verbose", valid = c("boolean"))
   check_input(input = threads, name = "threads", valid = c("integer"))
-  check_input(input = binarize, name = "binarize", valid = c("boolean"))
-  check_input(input = force, name = "force", valid = c("boolean"))
   
   ##################################################
   # Extract data from bulk
   ##################################################
+  rD<-reducedDims(cds)[[reduced_dim]]
+  LSI_num_dim<-cds@preprocess_aux$iLSI$num_dim
+  match(names(cds@reduce_dim_aux), embedding)
+  embedding_num_dim<-cds@reduce_dim_aux[[embedding]]$num_dim
+  
+  sc_embedding<-reducedDims(cds)[[embedding]]
+  rownames(sc_embedding)<-colnames(cds)
+
   if(features[1] %in% "annotation-based"){
     query<-cds@preprocess_aux$iLSI$features
-    subject<-se
     shared_rd<-extract_data(query, se)
   }
   
   if(features[1] %in% "range-based"){
     query<-cds@preprocess_aux$iLSI$Granges
-    subject<-se
     shared_rd<-extract_data(query, se)
   }
   
-
   message(paste0("Overlap Ratio of Reduced Dims Features = ", round(shared_rd$overlap, 3)))
-  #dim(bulk_mat)
   
-
   if( (shared_rd$overlap) < 0.25 ){
     if(force){
       warning("Less than 25% of the features are present in this bulk RNA data set! Continuing since force = TRUE!")
@@ -68,14 +69,14 @@ project_bulk_data <- function(
   }
   
   ##################################################
-  # Simulate and Project
+  # Simulate single cells and project using original LSI/SVD model
   ##################################################
-  depthN <- round(sum(cds@preprocess_aux$iLSI$row_sums / cds@preprocess_aux$iLSI$nCol))
+  depthN <- round(sum(cds@preprocess_aux$iLSI$row_sums / nrow(rD)))
   nRep <- 5
   n2 <- ceiling(n / nRep)
   ratios <- c(2, 1.5, 1, 0.5, 0.25) #range of ratios of number of fragments
   
-  if(verbose) message(paste0("Simulating ", (n * dim(sub_se)[2]), " single cells"))
+  if(verbose) message(paste0("Simulating ", (n * dim(se)[2]), " single cells"))
   simRD <- pbmcapply::pbmclapply(seq_len(ncol(shared_rd$mat)), function(x){
     counts <- shared_rd$mat[, x]
     counts <- rep(seq_along(counts), counts)
@@ -92,78 +93,41 @@ project_bulk_data <- function(
     simRD
   }, mc.cores =  threads) %>% Reduce("rbind", .)
   
-  # if(is.null(embedding)){
-  #   if(rD$scaleDims){
-  #     simRD <- scale_dims(simRD)
-  #   }
-  #   out <- SimpleList(
-  #     simulatedReducedDims = simRD
-  #   )
-  #   return(out)
-  # }
-  
-  ##################################################
-  # Prep Reduced Dims
-  ##################################################
-  sc_embedding<-list()
-  sc_embedding$df <- cds@reduce_dim_aux[[embedding]]$embedding
-  rownames(sc_embedding$df)<-colnames(cds)
-  corCutOff <- 0.75
-  #scaleDims <- cds@reduce_dim_aux[[embedding]]$scale_to
-  dimsToUse <- cds@preprocess_aux$iLSI$num_dim #may need to fix this later...
-  
-  # if(is.null(scaleDims)){
-  #   simRD <- scale_dims(simRD)
-  # }
+  # Deal with NaN
+  if(any(is.nan(simRD))){
+    simRD[is.nan(simRD)]<-0
+    warning("NaN calculated during single cell generation")
+  }
   
   if(scale){
     simRD <- scale_dims(simRD)
   }
   
   
-  # if(dimsToUse != ncol(simRD)){
-  #   
-  #   if(is.null(dimsToUse)){
-  #     dimsToUse <- seq_len(ncol(rD))
-  #   }
-  #   
-  #   # if(!is.null(corCutOff)){
-  #   #   if(scaleDims){
-  #   #     corToDepth <- rD$corToDepth$scaled
-  #   #     dimsToUse <- dimsToUse[corToDepth < corCutOff]
-  #   #   }else{
-  #   #     corToDepth <- rD$corToDepth$none
-  #   #     dimsToUse <- dimsToUse[corToDepth < corCutOff]
-  #   #   }
-  #   # }
-  #   
-  #   # if(embedding$params$nc != ncol(simRD)){
-  #   #   if(verbose) message("Error incosistency found with matching LSI dimensions to those used in addEmbedding",
-  #   #                       "\nReturning with simulated reduced dimension coordinates...")
-  #   #   out <- SimpleList(
-  #   #     simulatedReducedDims = simRD
-  #   #   )
-  #   #   return(out)
-  #   # }
-  #   
-  #   simRD <- simRD[, dimsToUse, drop = FALSE]
-  #   
-  # }
-  #ArchR:::addUMAP
-  #ArchR:::.saveUWOT
-  #ArchR:::addUMAP
+  ##################################################
+  # Check LSI and Embedding SVD columns
+  ##################################################
+
+
+  if(embedding_num_dim != ncol(simRD)){
+    stop("Error incosistency found with matching LSI dimensions to those used in embedding")
+  }
+  
   ##################################################
   # Get Previous UMAP Model
   ##################################################
-  umap_model <- load_umap_model(cds@reduce_dim_aux[[embedding]]$model_file, dimsToUse)
+  umap_model <- load_umap_model(cds@reduce_dim_aux[[embedding]]$model_file, embedding_num_dim)
   
-  idx <- sort(sample(seq_len(nrow(rD)), min(nrow(rD), embedding_ncells))) #Try to use 5000 or total cells to check validity
+  ##################################################
+  # subsample
+  ##################################################
+  idx <- sort(sample(seq_len(nrow(rD)), min(nrow(rD), ncells_coembedding)))
   rD_ss <- rD[idx,,drop=FALSE]
   
   ##################################################
   # Project UMAP
   ##################################################
-  if(verbose) message(paste0("Projecting simulated doublets onto manifold saved in: ", umap_model))
+  if(verbose) message(paste0("Projecting simulated doublets onto manifold saved in: ", cds@reduce_dim_aux[[embedding]]$model_file))
   set.seed(seed)
   #threads2 <- max(floor(threads/2), 1)
   simUMAP <- uwot::umap_transform(
@@ -173,14 +137,16 @@ project_bulk_data <- function(
     n_threads = threads
   )
   rownames(simUMAP) <- c(rownames(rD_ss), rownames(simRD))
-  #Check if the projection matches using previous data
-  c1 <- cor(simUMAP[rownames(rD_ss), 1], sc_embedding[[1]][rownames(rD_ss),1])
-  c2 <- cor(simUMAP[rownames(rD_ss), 2], sc_embedding[[1]][rownames(rD_ss),2])
+  ##################################################
+  # Check correlation of subsampled cells
+  ##################################################
+  c1 <- cor(simUMAP[rownames(rD_ss), 1], sc_embedding[rownames(rD_ss),1])
+  c2 <- cor(simUMAP[rownames(rD_ss), 2], sc_embedding[rownames(rD_ss),2])
   if(min(c1, c2) < 0.8){
     message(paste0("Warning projection correlation is less than 0.8 (R = ", round(min(c1,c2), 4),").\nThese results may not be accurate because of the lack of heterogeneity in the single cell data."))
   }
   
-  dfUMAP <- sc_embedding$df
+  dfUMAP <- sc_embedding
   colnames(dfUMAP) <- c("UMAP1", "UMAP2")
   colnames(simUMAP) <- c("UMAP1", "UMAP2")
   dfUMAP <- DataFrame(dfUMAP)
@@ -222,14 +188,14 @@ projectLSI<-function (mat = NULL, LSI = NULL, returnModel = FALSE, verbose = FAL
     mat@x <- mat@x/rep.int(colSm, Matrix::diff(mat@p))
     if (LSI$LSI_method == 1) {
       if(verbose) message("Computing Inverse Document Frequency")
-      idf   <- as(log(1 + LSI$nCol / LSI$row_sums), "sparseVector")
+      idf   <- as(log(1 + nrow(LSI$svd$v) / LSI$row_sums), "sparseVector")
       if(verbose) message("Computing TF-IDF Matrix")
       mat <- as(Matrix::Diagonal(x = as.vector(idf)), "sparseMatrix") %*% 
         mat
     }
     else if (LSI$LSI_method == 2) {
       if(verbose) message("Computing Inverse Document Frequency")
-      idf   <- as(LSI$nCol / LSI$row_sums, "sparseVector")
+      idf   <- as( nrow(LSI$svd$v) / LSI$row_sums, "sparseVector")
       if(verbose) message("Computing TF-IDF Matrix")
       mat <- as(Matrix::Diagonal(x = as.vector(idf)), "sparseMatrix") %*% 
         mat
@@ -237,7 +203,7 @@ projectLSI<-function (mat = NULL, LSI = NULL, returnModel = FALSE, verbose = FAL
     }else if (LSI$LSI_method == 3) {
       mat@x <- log(mat@x + 1)
       if(verbose) message("Computing Inverse Document Frequency")
-      idf <- as(log(1 + LSI$nCol/LSI$row_sums), "sparseVector")
+      idf <- as(log(1 + nrow(LSI$svd$v) /LSI$row_sums), "sparseVector")
       if(verbose) message("Computing TF-IDF Matrix")
       mat <- as(Matrix::Diagonal(x = as.vector(idf)), "sparseMatrix") %*% 
         mat

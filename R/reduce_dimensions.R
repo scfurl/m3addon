@@ -116,6 +116,8 @@ reduce_dimension <- function(cds,
   preprocess_mat <- reducedDims(cds)[[preprocess_method]]
   if(!is.null(num_dim)){
     preprocess_mat<-preprocess_mat[,1:num_dim]
+  }else{
+    num_dim<-ncol(preprocess_mat)
   }
   
   if(reduction_method == "PCA") {
@@ -162,7 +164,7 @@ reduce_dimension <- function(cds,
     }else{
       reducedDims(cds)$UMAP <- umap_res$embedding
       model_file <- save_umap_model(umap_res, umap.save_model)
-      cds@reduce_dim_aux <-SimpleList(UMAP=SimpleList(embedding=umap_res$embedding, scale_info=umap_res$scale_info, model_file=model_file))
+      cds@reduce_dim_aux <-SimpleList(UMAP=SimpleList(scale_info=umap_res$scale_info, model_file=model_file, num_dim=num_dim))
     }
   }
   
@@ -218,7 +220,6 @@ iterative_LSI <- function(cds,
                           resolution=c(1e-4, 3e-4, 5e-4),
                           num_features=c(3000,3000,3000), 
                           binarize=FALSE,
-                          LSI_method=1,
                           seed=2020, scale_to = 10000, leiden_k=20, leiden_weight=FALSE, leiden_iter=1, verbose=F,
                           ...){
   extra_arguments <- list(...)
@@ -239,9 +240,9 @@ iterative_LSI <- function(cds,
   matNorm <- t(t(mat)/Matrix::colSums(mat)) * scale_to
   matNorm@x <- log2(matNorm@x + 1)
   message("Performing LSI/SDF for iteration 1....")
-  features<-head(order(sparseRowVariances(matNorm),decreasing=TRUE), num_features[1])
+  f_idx<-head(order(sparseRowVariances(matNorm),decreasing=TRUE), num_features[1])
   tf<-tf_idf_transform_v2(mat[,])
-  row_sums<-Matrix::rowSums(mat[features,])
+  row_sums<-Matrix::rowSums(mat[f_idx,])
   tf@x[is.na(tf@x)] <- 0
   matSVD<-svd_lsi(tf, num_dim)
   cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
@@ -251,10 +252,10 @@ iterative_LSI <- function(cds,
   clusterMat <- edgeR::cpm(groupSums(mat, factor(cluster_result$optim_res$membership), sparse = TRUE), log=TRUE, prior.count = 3)
   for(iteration in 2:length(resolution)){
     message("Performing LSI/SDF for iteration ", iteration, "....")
-    features<-head(order(rowVars(clusterMat), decreasing=TRUE), num_features[iteration])
-    tf<-tf_idf_transform_v2(mat[features,])
+    f_idx<-head(order(rowVars(clusterMat), decreasing=TRUE), num_features[iteration])
+    tf<-tf_idf_transform_v2(mat[f_idx,])
     tf@x[is.na(tf@x)] <- 0
-    row_sums<-Matrix::rowSums(mat[features,])
+    row_sums<-Matrix::rowSums(mat[f_idx,])
     if(iteration!=length(resolution)){
       matSVD<-svd_lsi(tf, num_dim, mat_only=TRUE)
       cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
@@ -266,16 +267,21 @@ iterative_LSI <- function(cds,
       svd_list<-svd_lsi(tf, num_dim, mat_only=FALSE)
       reducedDims(cds)[["LSI"]]<-svd_list$matSVD
       irlba_rotation = svd_list$svd$u
-      row.names(irlba_rotation) = original_features[features]
-      iLSI<-SimpleList(svd=svd_list$svd, features=original_features[features], row_sums = row_sums, seed=seed, binarize=binarize, scale_to=scale_to, num_dim=num_dim, resolution=resolution, num_features=num_features, LSI_method=LSI_method, outliers=NULL)
+      row.names(irlba_rotation) = original_features[f_idx]
+      iLSI<-SimpleList(svd=svd_list$svd, features=original_features[f_idx], 
+                       row_sums = row_sums, seed=seed, binarize=binarize, 
+                       scale_to=scale_to, num_dim=num_dim, resolution=resolution, 
+                       granges=rowRanges(cds)[f_idx], LSI_method=1, outliers=NULL)
       pp_aux <- SimpleList(iLSI=iLSI, gene_loadings=irlba_rotation)
-      # cds@preprocess_aux$gene_loadings = irlba_rotation
       cds@preprocess_aux <- pp_aux
       cds@clusters[["LSI"]]<- monocle3:::leiden_clustering(data = svd_list$matSVD, 
                                                      pd = pData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
                                                      resolution_parameter = resolution[iteration], random_seed = seed, 
                                                      verbose = verbose, ...)
     }
+    # if(!is.null(update_clusters_in_embedding)){
+    #   cds@clusters[[update_clusters_in_embedding]]$clusters[colnames(exprs(cds))]<-as.character(cds@clusters[["LSI"]]$optim_res$membership)
+    # }
   }
   cds
 }
