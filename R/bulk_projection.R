@@ -54,7 +54,7 @@ project_bulk_data <- function(
   }
   
   if(features[1] %in% "range-based"){
-    query<-cds@preprocess_aux$iLSI$Granges
+    query<-cds@preprocess_aux$iLSI$granges
     shared_rd<-extract_data(query, se)
   }
   
