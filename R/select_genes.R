@@ -5,7 +5,7 @@ plot_gene_dispersion<-function(cds, size=1, alpha=0.4){
     prd$selected_genes<-prd$use_for_ordering
     g<-ggplot2::ggplot(prd, ggplot2::aes(x = log_mean, y = fit)) 
     if("use_for_ordering" %in% colnames(cds@int_metadata$dispersion)){
-      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=slected_genes), alpha=alpha, size=size)
+      g <- g + ggplot2::geom_point(data=prd, ggplot2::aes(x=log_mean, y=log_dispersion, color=selected_genes), alpha=alpha, size=size)
     }else{
       g <- g + ggplot2::geom_point(data=prd, ggplot2::aes( x=log_mean, y=log_dispersion), color="grey", alpha=alpha, size=size)
     }
