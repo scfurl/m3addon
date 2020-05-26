@@ -97,7 +97,7 @@ select_genes<-function(cds, fit_min=1, fit_max=Inf, logmean_ul=Inf, logmean_ll=-
 
 #' @export
 get_ordering_genes<-function(cds, gene_column="id"){
-  warning("Depracated.  Use: 'set_ordering_genes'")
+  warning("Depracated.  Use: 'get_selected_genes'")
   if(is.null(cds@int_metadata$dispersion$disp_func)){
     as.character(cds@int_metadata$dispersion[[gene_column]][cds@int_metadata$dispersion$use_for_ordering])
   }else{
