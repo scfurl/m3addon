@@ -1,4 +1,4 @@
-#' Project Bulk RNA-seq data into single cell subspace
+#' Project Bulk sequencing data into single cell subspace
 #' 
 #' @description This function will Project bulk sequencing data into single cell subspace. Adapted from: ArchR: An integrative and scalable software package for single-cell chromatin accessibility analysis
 #' Jeffrey M. Granja, M. Ryan Corces, Sarah E. Pierce, S. Tansu Bagdatli, Hani Choudhry, Howard Y. Chang, William J. Greenleaf
@@ -28,6 +28,7 @@ project_bulk_data <- function(
   seed=2020
   
 ){
+  message("This function has been depracated.  Use project_data and set make_pseudo_single_cells to TRUE")
   check_input(input = cds, name = "cds", valid = c("cell_data_set"))
   check_input(input = se, name = "se", valid = c("SummarizedExperiment"))
   check_input(input = ncells_coembedding , name = "ncells_coembedding ", valid = c("numeric"))

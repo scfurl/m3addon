@@ -2,7 +2,7 @@
 % Please edit documentation in R/bulk_projection.R
 \name{project_bulk_data}
 \alias{project_bulk_data}
-\title{Project Bulk RNA-seq data into single cell subspace}
+\title{Project Bulk sequencing data into single cell subspace}
 \usage{
 project_bulk_data(
   cds = NULL,
