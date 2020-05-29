@@ -26,7 +26,7 @@ trimap<-function(cds, preprocess_method = "PCA", python_home = system("which pyt
   #reticulate::use_python(python_home)
   if(!py_available("trimap")) stop("python module trimap does not seem to be installed; - try running 'py_config()'")
   source_python(module_file)
-  if(is.null(reducedDims(cds)[preprocess_method]))stop("preprocess_method not found in the reducedDims slot")
+  if(is.null(reducedDims(cds)[[preprocess_method]]))stop("preprocess_method not found in the reducedDims slot")
   if(num_dims > dim(reducedDims(cds)[[preprocess_method]])[2]) stop("num_dims exceeds the number of dimensions in supplied preprocess_method")
   if(is.null(num_dims)){
     num_dims<-dim(reducedDims(cds)[[preprocess_method]])[2]
@@ -46,9 +46,10 @@ trimap<-function(cds, preprocess_method = "PCA", python_home = system("which pyt
   message("Running trimap: For a variety of reasons, python output is provided at end of function, so just be patient...")
   returned <- trimap_fromR(data, n_dims, n_inliers, n_outliers, n_random, distance, lr, n_iters, knn_tuple, apply_pca_trimap, opt_method, verbose, weight_adj, return_seq)
   reducedDims(cds)[["trimap"]] <-returned[[2]]
-  message <- returned[[1]]
-  for(i in message){
-    lapply(regmatches(i, gregexpr('(\").*?(\")', i, perl = TRUE)), function(y) gsub("^\"|\"$", "", y))
+  message <- py_to_r(returned[[1]])
+  for(i in 0:(length(message)-1)){
+    #message(lapply(regmatches(message[i], gregexpr('(\").*?(\")', i, perl = TRUE)), function(y) gsub("^\"|\"$", "", y)))
+    message(message[i])
   }
   return(cds)
 }
