@@ -30,7 +30,8 @@ plot_gene_dispersion<-function(cds, size=1, alpha=0.4){
     g<-g+
       ggplot2::theme_bw() +
       ggplot2::geom_line(data=prd, ggplot2::aes( x=log_mean, y=fit)) +
-      ggplot2::geom_smooth(data=prd, formula = fit ~ log_mean, stat = "identity")
+      ggplot2::geom_smooth(data=prd, formula = fit ~ log_mean, stat = "identity") + 
+      labs(x = "log mean expression", y="log dispersion")
     return(g)
   }
 }
