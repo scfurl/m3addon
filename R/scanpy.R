@@ -19,7 +19,7 @@
 #' 
 #' 
 
-import_scanpy_h5<-function(file, raw=TRUE, rowname_col="GeneID", gene_short_name_col="GeneName", colors=NULL, PCA=T, UMAP=TRUE){
+import_scanpy_h5<-function(file, raw=TRUE, rowname_col="GeneID", gene_short_name_col="GeneName", colors=NULL, PCA=T, UMAP=TRUE, var_features=T){
   if(!file.exists(file)){stop(paste0("Input file not found: ", file))}
   s <- H5File$new(file, mode = "r")
   if(raw){
@@ -91,6 +91,7 @@ import_scanpy_h5<-function(file, raw=TRUE, rowname_col="GeneID", gene_short_name
       cds@metadata[[cn]]<-s[["uns"]][[color]][]
     }
   }
+  if(var_features) cds$metadata$var_features <- s[["var"]][[rowname_col]][]
   if(PCA) reducedDims(cds)<-SimpleList(PCA=t(s[["obsm"]][["X_pca"]]$read()))
   if(UMAP) reducedDims(cds)[["UMAP"]]=t(s[["obsm"]][["X_umap"]]$read())
   s$close()
