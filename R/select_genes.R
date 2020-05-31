@@ -140,6 +140,8 @@ set_ordering_genes<-function(cds, genes, gene_column="id", unique_column="id"){
   if(is.null(cds@int_metadata$dispersion$disp_func)){
     if(gene_column %in% colnames(cds@int_metadata$dispersion)){
       cds@int_metadata$dispersion$use_for_ordering = cds@int_metadata$dispersion[[gene_column]] %in% genes
+    }else{
+      stop("gene_column not found in dispersion result.  Rerun calc_gene_dispersion using a different id_tag")
     }
     if(length(which(cds@int_metadata$dispersion$use_for_ordering))<1) warning("No ordering genes found")
   }else{
@@ -229,8 +231,8 @@ calculate_gene_dispersion<-function(cds, q=3, id_tag="id", symbol_tag="gene_shor
     prd$fit <- err$fit
     prd$uci <- err$fit + 1.96 * err$se.fit
     prd$log_dispersion<-df$log_dispersion
-    prd$id<-df[[id_tag]]
-    prd$gene_short_name<-fdat[[symbol_tag]][match(prd$id, fdat[[id_tag]])]
+    prd[[id_tag]]<-df[[id_tag]]
+    prd$gene_short_name<-fdat[[symbol_tag]][match(prd[[id_tag]], fdat[[id_tag]])]
     cds@int_metadata$dispersion<-prd
     return(cds)
   }
