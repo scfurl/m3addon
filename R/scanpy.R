@@ -19,7 +19,7 @@
 #' 
 #' 
 
-import_scanpy_h5<-function(file, raw=TRUE, rowname_col="GeneID", gene_short_name_col="GeneName", colors=NULL, PCA=T, UMAP=TRUE, var_features=T){
+import_scanpy_h5<-function(file, raw=TRUE, rowname_col="GeneID", gene_short_name_col="GeneName", colors=NULL, PCA=T, UMAP=TRUE, neighbors=T, var_features=T){
   if(!file.exists(file)){stop(paste0("Input file not found: ", file))}
   s <- H5File$new(file, mode = "r")
   if(raw){
@@ -54,7 +54,18 @@ import_scanpy_h5<-function(file, raw=TRUE, rowname_col="GeneID", gene_short_name
   }
   
   shape = c(nrow(obsdf), nrow(gdf))
+  if(neighbors){
+    cdims = c(ncells,ncells)
+    csm <-  sparseMatrix(x = s[["uns/neighbors/connectivities/data"]][], 
+                         i = s[["uns/neighbors/connectivities/indices"]][] + 1, 
+                         p = s[["uns/neighbors/connectivities/indptr"]][], dims = cdims)
+    nn = s[["uns/neighbors/params/n_neighbors"]][]
+    s[["uns/neighbors/distances"]]
+    dsm <-  sparseMatrix(x = s[["uns/neighbors/distances/data"]][], 
+                         i = s[["uns/neighbors/distances/indices"]][] +1, 
+                         p = s[["uns/neighbors/distances/indptr"]][], dims = cdims)
   
+  }
   #umap<-read.csv(file.path(DATA_DIR, "thymus_annotated_matrix_files/umap.csv"), header=F)
   gbm = sparseMatrix(x = data, i = indices, p = indptr, dims = rev(shape))
   if("index" %in% colnames(obsdf)){
@@ -94,6 +105,7 @@ import_scanpy_h5<-function(file, raw=TRUE, rowname_col="GeneID", gene_short_name
   if(var_features) cds@metadata$var_features <- s[["var"]][[rowname_col]][]
   if(PCA) reducedDims(cds)<-SimpleList(PCA=t(s[["obsm"]][["X_pca"]]$read()))
   if(UMAP) reducedDims(cds)[["UMAP"]]=t(s[["obsm"]][["X_umap"]]$read())
+  if(neighbors) cds@int_metadata[["knn"]] <- SimpleList(connectivies=csm, distances=dsm)
   s$close()
   cds
   #plot_cells(cds, color_cells_by = "cell_type", label_cell_groups = F)+scale_color_manual(values=rev(cds@metadata$ct_col))

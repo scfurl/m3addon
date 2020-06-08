@@ -20,8 +20,8 @@
 #' @export
 
 project_data <- function(
-  cds = NULL,
-  se = NULL,
+  projector = NULL,
+  projectee = NULL,
   ncells_coembedding = 5000,
   scale=F,
   reduced_dim = "LSI",
@@ -34,8 +34,8 @@ project_data <- function(
   seed=2020
   
 ){
-  check_input(input = cds, name = "cds", valid = c("cell_data_set"))
-  check_input(input = se, name = "se", valid = c("SummarizedExperiment"))
+  check_input(input = projector, name = "projector", valid = c("cell_data_set"))
+  check_input(input = projectee, name = "projectee", valid = c("SummarizedExperiment"))
   check_input(input = ncells_coembedding , name = "ncells_coembedding ", valid = c("numeric"))
   check_input(input = reduced_dim, name = "reduced_dim", valid = c("character"))
   check_input(input = embedding, name = "embedding", valid = c("character", "null"))
@@ -46,22 +46,22 @@ project_data <- function(
   ##################################################
   # Extract data from bulk
   ##################################################
-  rD<-reducedDims(cds)[[reduced_dim]]
-  LSI_num_dim<-cds@preprocess_aux$iLSI$num_dim
-  match(names(cds@reduce_dim_aux), embedding)
-  embedding_num_dim<-cds@reduce_dim_aux[[embedding]]$num_dim
+  rD<-reducedDims(projector)[[reduced_dim]]
+  LSI_num_dim<-projector@preprocess_aux$iLSI$num_dim
+  match(names(projector@reduce_dim_aux), embedding)
+  embedding_num_dim<-projector@reduce_dim_aux[[embedding]]$num_dim
   
-  sc_embedding<-reducedDims(cds)[[embedding]]
-  rownames(sc_embedding)<-colnames(cds)
+  sc_embedding<-reducedDims(projector)[[embedding]]
+  rownames(sc_embedding)<-colnames(projector)
   
   if(features[1] %in% "annotation-based"){
-    query<-cds@preprocess_aux$iLSI$features
-    shared_rd<-extract_data(query, se)
+    query<-projector@preprocess_aux$iLSI$features
+    shared_rd<-extract_data(query, projectee)
   }
   
   if(features[1] %in% "range-based"){
-    query<-cds@preprocess_aux$iLSI$granges
-    shared_rd<-extract_data(query, se)
+    query<-projector@preprocess_aux$iLSI$granges
+    shared_rd<-extract_data(query, projectee)
   }
   
   message(paste0("Overlap Ratio of Reduced Dims Features = ", round(shared_rd$overlap, 3)))
@@ -78,12 +78,12 @@ project_data <- function(
   # Simulate single cells and project using original LSI/SVD model
   ##################################################
   if(make_pseudo_single_cells){
-    depthN <- round(sum(cds@preprocess_aux$iLSI$row_sums / nrow(rD)))
+    depthN <- round(sum(projector@preprocess_aux$iLSI$row_sums / nrow(rD)))
     nRep <- 5
     n2 <- ceiling(n / nRep)
     ratios <- c(2, 1.5, 1, 0.5, 0.25) #range of ratios of number of fragments
   
-    if(verbose) message(paste0("Simulating ", (n * dim(se)[2]), " single cells"))
+    if(verbose) message(paste0("Simulating ", (n * dim(projectee)[2]), " single cells"))
     projRD <- pbmcapply::pbmclapply(seq_len(ncol(shared_rd$mat)), function(x){
       counts <- shared_rd$mat[, x]
       counts <- rep(seq_along(counts), counts)
@@ -95,7 +95,7 @@ project_data <- function(
         simMat
       }) %>%  Reduce("rbind", .)
       simMat <- Matrix::sparseMatrix(i = simMat[,2], j = simMat[,1], x = rep(1, nrow(simMat)), dims = c(nrow(shared_rd$mat), n2 * nRep))
-      projRD <- as.matrix(projectLSI(simMat, LSI = cds@preprocess_aux$iLSI, verbose = verbose))
+      projRD <- as.matrix(projectLSI(simMat, LSI = projector@preprocess_aux$iLSI, verbose = verbose))
       rownames(projRD) <- paste0(colnames(shared_rd$mat)[x], "#", seq_len(nrow(projRD)))
       projRD
     }, mc.cores =  threads) %>% Reduce("rbind", .)
@@ -110,7 +110,7 @@ project_data <- function(
       projRD <- scale_dims(projRD)
     }
   }else{
-    projRD <- as.matrix(projectLSI(shared_rd$mat, LSI = cds@preprocess_aux$iLSI, verbose = verbose))
+    projRD <- as.matrix(projectLSI(shared_rd$mat, LSI = projector@preprocess_aux$iLSI, verbose = verbose))
   }
   
   ##################################################
@@ -125,7 +125,7 @@ project_data <- function(
   ##################################################
   # Get Previous UMAP Model
   ##################################################
-  umap_model <- load_umap_model(cds@reduce_dim_aux[[embedding]]$model_file, embedding_num_dim)
+  umap_model <- load_umap_model(projector@reduce_dim_aux[[embedding]]$model_file, embedding_num_dim)
   
   ##################################################
   # subsample
@@ -136,7 +136,8 @@ project_data <- function(
   ##################################################
   # Project UMAP
   ##################################################
-  if(verbose) message(paste0("Projecting simulated doublets onto manifold saved in: ", cds@reduce_dim_aux[[embedding]]$model_file))
+  if(verbose & make_pseudo_single_cells) message(paste0("Projecting simulated doublets onto manifold saved in: ", projector@reduce_dim_aux[[embedding]]$model_file))
+  if(verbose & !make_pseudo_single_cells) message(paste0("Projecting projectee cells onto manifold saved in: ", projector@reduce_dim_aux[[embedding]]$model_file))
   set.seed(seed)
   #threads2 <- max(floor(threads/2), 1)
   simUMAP <- uwot::umap_transform(
