@@ -196,5 +196,27 @@ kurtosis<-function(x, finite){
   return(K)	
 }
 
+#' @export
+
+lighten_darken_color<-function(col, amt) {
+  if (substring(col, 1, 1)=="#") {
+    col = substring(col, 2)
+  }
+  num = as.hexmode(col)
+  r = bitwShiftR(num, 16) + amt
+  if (r > 255) {r = 255}
+  if  (r < 0) {r = 0}
+  b = bitwAnd(bitwShiftR(num, 8), 0x00FF) + amt
+  if (b > 255) {b = 255}
+  if  (b < 0) {b = 0}
+  g = bitwAnd(num, 0x0000FF) + amt
+  if (g > 255) {g = 255}
+  if (g < 0) {g = 0}
+  inter<-paste("000000", as.hexmode(bitwOr(g , bitwOr(bitwShiftL(b, 8), bitwShiftL(r, 16)))), sep="")
+  ret<-substr(inter, nchar(inter)-5, nchar(inter))
+  return(toupper(paste("#", ret, sep="")))
+}
+
+
 
 
