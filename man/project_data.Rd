@@ -5,8 +5,8 @@
 \title{Project data from one object into the UMAP embedding a single cell object}
 \usage{
 project_data(
-  cds = NULL,
-  se = NULL,
+  projector = NULL,
+  projectee = NULL,
   ncells_coembedding = 5000,
   scale = F,
   reduced_dim = "LSI",
@@ -16,10 +16,17 @@ project_data(
   n = 250,
   verbose = TRUE,
   threads = 6,
-  seed = 2020
+  seed = 2020,
+  force = F
 )
 }
 \arguments{
+\item{projector}{cell_data_set object with a reduced dimension matrix (currently iLSI supported) as specified in
+reduced_dim argument and a model used to create a low dimensional embedding}
+
+\item{projectee}{a SummarizedExperiment type object (cell_data_set currently supported) to be projected using 
+the models contained in the projector}
+
 \item{ncells_coembedding}{number of cells in the projector to use in in the co-embedding with simulated single cells; default is 5000, will automatically
 default to the total number of cells in the projector if less than this value.}
 
@@ -35,12 +42,6 @@ make_pseudo_single_cells is TRUE}
 \item{verbose}{A boolean value indicating whether to use verbose output during execution of this function. Can be set to FALSE for a cleaner output.}
 
 \item{threads}{The number of threads used for parallel execution}
-
-\item{projector}{cell_data_set object with a reduced dimension matrix (currently iLSI supported) as specified in
-reduced_dim argument and a model used to create a low dimensional embedding}
-
-\item{projectee}{a SummarizedExperiment type object (cell_data_set currently supported) to be projected using 
-the models contained in the projector}
 }
 \description{
 Adapted from: ArchR: An integrative and scalable software package for single-cell chromatin accessibility analysis

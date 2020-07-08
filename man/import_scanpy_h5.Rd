@@ -11,7 +11,9 @@ import_scanpy_h5(
   gene_short_name_col = "GeneName",
   colors = NULL,
   PCA = T,
-  UMAP = TRUE
+  UMAP = TRUE,
+  neighbors = T,
+  var_features = T
 )
 }
 \arguments{

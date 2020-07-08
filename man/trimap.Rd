@@ -6,6 +6,7 @@
 \usage{
 trimap(
   cds,
+  preprocess_method = "PCA",
   python_home = system("which python", intern = TRUE),
   num_dims = NULL,
   module_file = paste(system.file(package = "m3addon"), "trimap.py", sep = "/"),
