@@ -32,7 +32,7 @@ project_data <- function(
   verbose = TRUE,
   threads = 6,
   seed=2020
-  
+  force=F
 ){
   check_input(input = projector, name = "projector", valid = c("cell_data_set"))
   check_input(input = projectee, name = "projectee", valid = c("SummarizedExperiment"))

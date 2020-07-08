@@ -290,3 +290,9 @@ get_assay<-function (se = NULL, assayName = NULL)
   }
   return(o)
 }
+
+#' @export
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}

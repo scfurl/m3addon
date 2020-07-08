@@ -43,7 +43,7 @@ project_bulk_data <- function(
   ##################################################
   rD<-reducedDims(cds)[[reduced_dim]]
   LSI_num_dim<-cds@preprocess_aux$iLSI$num_dim
-  match(names(cds@reduce_dim_aux), embedding)
+  #match(names(cds@reduce_dim_aux), embedding)
   embedding_num_dim<-cds@reduce_dim_aux[[embedding]]$num_dim
   
   sc_embedding<-reducedDims(cds)[[embedding]]
@@ -200,7 +200,7 @@ projectLSI<-function (mat = NULL, LSI = NULL, returnModel = FALSE, verbose = FAL
       if(verbose) message("Computing TF-IDF Matrix")
       mat <- as(Matrix::Diagonal(x = as.vector(idf)), "sparseMatrix") %*% 
         mat
-      mat@x <- log(mat@x * LSI$scaleTo + 1)
+      mat@x <- log(mat@x * LSI$scale_to + 1)
     }else if (LSI$LSI_method == 3) {
       mat@x <- log(mat@x + 1)
       if(verbose) message("Computing Inverse Document Frequency")
