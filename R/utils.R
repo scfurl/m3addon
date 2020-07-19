@@ -32,8 +32,8 @@ common_features <- function(cds_list){
 #' @param cds_list Input cell_data_set object or sparse matrix.
 #' @import Matrix
 #' @export
-tf_idf_transform <- function(mat, method=2, scale_to=10000){
-  if(class(mat)=="cell_data_set"){
+tf_idf_transform <- function(input, method=1, scale_to=10000, verbose=T){
+  if(class(input)=="cell_data_set"){
     mat<-exprs(mat)
   }else{
     mat<-input
@@ -62,7 +62,7 @@ tf_idf_transform <- function(mat, method=2, scale_to=10000){
     if(verbose) message("Computing TF-IDF Matrix")
     mat <- as(Matrix::Diagonal(x = as.vector(idf)), "sparseMatrix") %*% 
       mat
-    mat@x <- log(mat * scale_to + 1)
+    mat@x <- log(mat@x * scale_to + 1)
   }else if (method == 3) {
     mat@x <- log(mat@x + 1)
     if(verbose) message("Computing Inverse Document Frequency")
@@ -73,7 +73,7 @@ tf_idf_transform <- function(mat, method=2, scale_to=10000){
   }else {
     stop("LSIMethod unrecognized please select valid method!")
   }
-  colnames(mat) <- rn
+  rownames(mat) <- rn
     if(class(input)=="cell_data_set"){
     input@assays$data$counts<-mat
     return(input)

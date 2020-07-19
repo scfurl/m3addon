@@ -119,6 +119,10 @@ get_selected_genes<-function(cds, gene_column="id"){
 #' @export
 set_selected_genes<-function(cds, genes, gene_column="id", unique_column="id"){
   if(is.null(cds@int_metadata$dispersion$disp_func)){
+    if(is.null(cds@int_metadata$dispersion)){
+        cds@int_metadata$dispersion$use_for_ordering = rownames(cds) %in% genes
+      return(cds)
+    }
     if(gene_column %in% colnames(cds@int_metadata$dispersion)){
       cds@int_metadata$dispersion$use_for_ordering = cds@int_metadata$dispersion[[gene_column]] %in% genes
     }
@@ -133,6 +137,8 @@ set_selected_genes<-function(cds, genes, gene_column="id", unique_column="id"){
   }
   cds
 }
+
+
 
 #' @export
 set_ordering_genes<-function(cds, genes, gene_column="id", unique_column="id"){

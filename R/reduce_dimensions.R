@@ -203,6 +203,8 @@ reduce_dimension <- function(cds,
 #' @param binarize boolean whether to binarize data prior to TFIDF transformation
 #' @param scale_to numeric value to scale data
 #' @param seed numeric seed
+#' @param return_iterations boolean whether to return iterations; funciton will then output a list contianing the final cds and 
+#' all SVD matrices, clusters and features used in each iteration
 #' @param num_features number of features to use for dimensionality reduction (default 3000).  To use different numbers
 #' of features for different iterations, supply a vector that is the same length as the resolution vector.
 #' @return an updated cell_data_set object with a reduced dimension LSI object and clusters object
@@ -220,12 +222,10 @@ iterative_LSI <- function(cds,
                           resolution=c(1e-4, 3e-4, 5e-4),
                           num_features=c(3000,3000,3000), 
                           binarize=FALSE,
-                          seed=2020, scale_to = 10000, leiden_k=20, leiden_weight=FALSE, leiden_iter=1, verbose=F,
+                          LSI_method=1, partition_qval = 0.05, 
+                          seed=2020, scale_to = 10000, leiden_k=20, leiden_weight=FALSE, leiden_iter=1, verbose=F, return_iterations=F,
                           ...){
   extra_arguments <- list(...)
-  if(length(resolution)<2){
-    stop("This method is intended to iterate.  Adjust number of resolution elements and retry")
-  }
   if(length(num_features)!=length(resolution)){
     message("Numbers of elements for resolution and num_features do not match.  Will use num_features[1]...")
     num_features<-rep(num_features, length(resolution))
@@ -237,53 +237,106 @@ iterative_LSI <- function(cds,
     message("Binarizing...")
     mat@x[mat@x > 0] <- 1
   }
+  outlist<-list()
   matNorm <- t(t(mat)/Matrix::colSums(mat)) * scale_to
   matNorm@x <- log2(matNorm@x + 1)
   message("Performing LSI/SDF for iteration 1....")
   f_idx<-head(order(sparseRowVariances(matNorm),decreasing=TRUE), num_features[1])
-  tf<-tf_idf_transform(mat[,])
+  tf<-tf_idf_transform(mat[f_idx,], method = LSI_method)
   row_sums<-Matrix::rowSums(mat[f_idx,])
   tf@x[is.na(tf@x)] <- 0
-  matSVD<-svd_lsi(tf, num_dim)
-  cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
+  svd_list<-svd_lsi(tf, num_dim, mat_only=FALSE)
+  cluster_result <- monocle3:::leiden_clustering(data = svd_list$matSVD, 
                                       pd = pData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
                                       resolution_parameter = resolution[1], random_seed = seed, 
                                       verbose = verbose, ...)
-  clusterMat <- edgeR::cpm(groupSums(mat, factor(cluster_result$optim_res$membership), sparse = TRUE), log=TRUE, prior.count = 3)
+  clusters <- factor(igraph::membership(cluster_result$optim_res))
+  clusterMat <- edgeR::cpm(groupSums(mat, clusters, sparse = TRUE), log=TRUE, prior.count = 3)
+  if(length(resolution)==1){
+    reducedDims(cds)[["LSI"]]<-svd_list$matSVD
+    irlba_rotation = svd_list$svd$u
+    row.names(irlba_rotation) = original_features[f_idx]
+    iLSI<-SimpleList(svd=svd_list$svd, features=original_features[f_idx], 
+                     row_sums = row_sums, seed=seed, binarize=binarize, 
+                     scale_to=scale_to, num_dim=num_dim, resolution=resolution, 
+                     granges=rowRanges(cds)[f_idx], LSI_method=LSI_method, outliers=NULL)
+    pp_aux <- SimpleList(iLSI=iLSI, gene_loadings=irlba_rotation)
+    cds@preprocess_aux <- pp_aux
+    if (length(unique(cluster_result$optim_res$membership)) > 
+        1) {
+      cluster_graph_res <- monocle3:::compute_partitions(cluster_result$g, 
+                                              cluster_result$optim_res, partition_qval, verbose)
+      partitions <- igraph::components(cluster_graph_res$cluster_g)$membership[cluster_result$optim_res$membership]
+      partitions <- as.factor(partitions)
+    }
+    else {
+      partitions <- rep(1, nrow(colData(cds)))
+    }
+    names(partitions) <- row.names(rownames(pData(cds)))
+    cds@clusters[["LSI"]] <- list(cluster_result = cluster_result, 
+                                             partitions = partitions, clusters = clusters)
+    if(return_iterations){
+      outlist[["iteration_1"]]=list(matSVD=svd_list$matSVD, features=original_features[f_idx], clusters=clusters)
+      return(list(cds=cds, iterationlist==outlist))
+    }else{
+      return(cds)
+    }
+  }
   for(iteration in 2:length(resolution)){
     message("Performing LSI/SDF for iteration ", iteration, "....")
     f_idx<-head(order(rowVars(clusterMat), decreasing=TRUE), num_features[iteration])
-    tf<-tf_idf_transform(mat[f_idx,])
+    tf<-tf_idf_transform(mat[f_idx,], method = LSI_method)
     tf@x[is.na(tf@x)] <- 0
     row_sums<-Matrix::rowSums(mat[f_idx,])
+    svd_list<-svd_lsi(tf, num_dim, mat_only=FALSE)
+    cluster_result <- monocle3:::leiden_clustering(data = svd_list$matSVD, 
+                                                   pd = pData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
+                                                   resolution_parameter = resolution[iteration], random_seed = seed, 
+                                                   verbose = verbose, ...)
+    clusters <- factor(igraph::membership(cluster_result$optim_res))
+    clusterMat <- edgeR::cpm(groupSums(mat, clusters, sparse = TRUE), log=TRUE, prior.count = 3)
     if(iteration!=length(resolution)){
-      matSVD<-svd_lsi(tf, num_dim, mat_only=TRUE)
-      cluster_result <- monocle3:::leiden_clustering(data = matSVD, 
-                                                     pd = pData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
-                                                     resolution_parameter = resolution[iteration], random_seed = seed, 
-                                                     verbose = verbose, ...)
-      clusterMat <- edgeR::cpm(groupSums(mat, factor(cluster_result$optim_res$membership), sparse = TRUE), log=TRUE, prior.count = 3)
+      if(return_iterations){
+        it_count<-paste0("iteration_", iteration)
+        outlist[[it_count]]=list(matSVD=svd_list$matSVD, features=original_features[f_idx], clusters=clusters)
+        return(list(cds=cds, iterationlist==outlist))
+      }
+      next
     }else{
-      svd_list<-svd_lsi(tf, num_dim, mat_only=FALSE)
       reducedDims(cds)[["LSI"]]<-svd_list$matSVD
       irlba_rotation = svd_list$svd$u
       row.names(irlba_rotation) = original_features[f_idx]
       iLSI<-SimpleList(svd=svd_list$svd, features=original_features[f_idx], 
                        row_sums = row_sums, seed=seed, binarize=binarize, 
                        scale_to=scale_to, num_dim=num_dim, resolution=resolution, 
-                       granges=rowRanges(cds)[f_idx], LSI_method=1, outliers=NULL)
+                       granges=rowRanges(cds)[f_idx], LSI_method=LSI_method, outliers=NULL)
       pp_aux <- SimpleList(iLSI=iLSI, gene_loadings=irlba_rotation)
       cds@preprocess_aux <- pp_aux
-      cds@clusters[["LSI"]]<- monocle3:::leiden_clustering(data = svd_list$matSVD, 
-                                                     pd = pData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
-                                                     resolution_parameter = resolution[iteration], random_seed = seed, 
-                                                     verbose = verbose, ...)
+      if (length(unique(cluster_result$optim_res$membership)) > 
+          1) {
+        cluster_graph_res <- monocle3:::compute_partitions(cluster_result$g, 
+                                                           cluster_result$optim_res, partition_qval, verbose)
+        partitions <- igraph::components(cluster_graph_res$cluster_g)$membership[cluster_result$optim_res$membership]
+        partitions <- as.factor(partitions)
+      }
+      else {
+        partitions <- rep(1, nrow(colData(cds)))
+      }
+      names(partitions) <- row.names(rownames(pData(cds)))
+      cds@clusters[["LSI"]] <- list(cluster_result = cluster_result, 
+                                    partitions = partitions, clusters = clusters)
+      if(return_iterations){
+        it_count<-paste0("iteration_", iteration)
+        outlist[[it_count]]=list(matSVD=svd_list$matSVD, features=original_features[f_idx], clusters=clusters)
+        return(list(cds=cds, iterationlist==outlist))
+      }else{
+        return(cds)
+      }
     }
     # if(!is.null(update_clusters_in_embedding)){
     #   cds@clusters[[update_clusters_in_embedding]]$clusters[colnames(exprs(cds))]<-as.character(cds@clusters[["LSI"]]$optim_res$membership)
     # }
   }
-  cds
 }
 
 #' Helper function for summing sparse matrix groups
