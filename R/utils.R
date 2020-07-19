@@ -32,22 +32,53 @@ common_features <- function(cds_list){
 #' @param cds_list Input cell_data_set object or sparse matrix.
 #' @import Matrix
 #' @export
-tf_idf_transform <- function(input){
-  if(class(input)=="cell_data_set"){
-    mat<-exprs(input)
+tf_idf_transform <- function(mat, method=2, scale_to=10000){
+  if(class(mat)=="cell_data_set"){
+    mat<-exprs(mat)
   }else{
     mat<-input
   }
-  idf <- log( ncol(mat) / ( 1 + Matrix::rowSums(mat != 0) ) )
-  idf<-.sparseDiagonal(x=idf)
-  tf_idf <- crossprod(mat, idf)
-  colnames(tf_idf) <- rownames(mat)
-  tf_idf_out<-Matrix::t(tf_idf / sqrt( Matrix::rowSums( tf_idf^2 ) ))
-  if(class(input)=="cell_data_set"){
-    input@assays$data$counts<-tf_idf_out
+  rn <- rownames(mat)
+  row_sums<-Matrix::rowSums(mat)
+  nz<-which(row_sums>0)
+  mat <- mat[nz,]
+  row_sums <- row_sums[nz]
+  col_sums <- Matrix::colSums(mat)
+  
+  #column normalize
+  mat <- t(t(mat)/col_sums)
+  
+  
+  if (method == 1) {
+    if(verbose) message("Computing Inverse Document Frequency")
+    idf   <- as(log(1 + ncol(mat) / row_sums), "sparseVector")
+    if(verbose) message("Computing TF-IDF Matrix")
+    mat <- as(Matrix::Diagonal(x = as.vector(idf)), "sparseMatrix") %*% 
+      mat
+  }
+  else if (method == 2) {
+    if(verbose) message("Computing Inverse Document Frequency")
+    idf   <- as( ncol(mat) / row_sums, "sparseVector")
+    if(verbose) message("Computing TF-IDF Matrix")
+    mat <- as(Matrix::Diagonal(x = as.vector(idf)), "sparseMatrix") %*% 
+      mat
+    mat@x <- log(mat * scale_to + 1)
+  }else if (method == 3) {
+    mat@x <- log(mat@x + 1)
+    if(verbose) message("Computing Inverse Document Frequency")
+    idf <- as(log(1 + ncol(mat) /row_sums), "sparseVector")
+    if(verbose) message("Computing TF-IDF Matrix")
+    mat <- as(Matrix::Diagonal(x = as.vector(idf)), "sparseMatrix") %*% 
+      mat
+  }else {
+    stop("LSIMethod unrecognized please select valid method!")
+  }
+  colnames(mat) <- rn
+    if(class(input)=="cell_data_set"){
+    input@assays$data$counts<-mat
     return(input)
   }else{
-    return(tf_idf_out)
+    return(mat)
   }
 }
 

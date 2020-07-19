@@ -241,7 +241,7 @@ iterative_LSI <- function(cds,
   matNorm@x <- log2(matNorm@x + 1)
   message("Performing LSI/SDF for iteration 1....")
   f_idx<-head(order(sparseRowVariances(matNorm),decreasing=TRUE), num_features[1])
-  tf<-tf_idf_transform_v2(mat[,])
+  tf<-tf_idf_transform(mat[,])
   row_sums<-Matrix::rowSums(mat[f_idx,])
   tf@x[is.na(tf@x)] <- 0
   matSVD<-svd_lsi(tf, num_dim)
@@ -253,7 +253,7 @@ iterative_LSI <- function(cds,
   for(iteration in 2:length(resolution)){
     message("Performing LSI/SDF for iteration ", iteration, "....")
     f_idx<-head(order(rowVars(clusterMat), decreasing=TRUE), num_features[iteration])
-    tf<-tf_idf_transform_v2(mat[f_idx,])
+    tf<-tf_idf_transform(mat[f_idx,])
     tf@x[is.na(tf@x)] <- 0
     row_sums<-Matrix::rowSums(mat[f_idx,])
     if(iteration!=length(resolution)){

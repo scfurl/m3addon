@@ -248,7 +248,7 @@ extract_data<-function(query,
         stop(paste0("No overlap between query and subject found."))
       }
       fs<-query
-      mat<-as.matrix(get_assay(subject))[fidx,]
+      mat<-as(get_assay(subject), "dgCMatrix")[fidx,]
       if(is.null(rownames(mat))){
         rownames(mat)<-rownames(subject)[fidx]
       }
@@ -499,6 +499,8 @@ projectLSI<-function (mat = NULL, LSI = NULL, returnModel = FALSE, verbose = FAL
     }
     mat@x <- mat@x/rep.int(colSm, Matrix::diff(mat@p))
     if (LSI$LSI_method == 1) {
+      #Adapted from Casanovich et al.
+      
       if(verbose) message("Computing Inverse Document Frequency")
       idf   <- as(log(1 + nrow(LSI$svd$v) / LSI$row_sums), "sparseVector")
       if(verbose) message("Computing TF-IDF Matrix")
@@ -506,6 +508,7 @@ projectLSI<-function (mat = NULL, LSI = NULL, returnModel = FALSE, verbose = FAL
         mat
     }
     else if (LSI$LSI_method == 2) {
+      #Adapted from Stuart et al.
       if(verbose) message("Computing Inverse Document Frequency")
       idf   <- as( nrow(LSI$svd$v) / LSI$row_sums, "sparseVector")
       if(verbose) message("Computing TF-IDF Matrix")
