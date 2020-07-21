@@ -34,7 +34,7 @@ common_features <- function(cds_list){
 #' @export
 tf_idf_transform <- function(input, method=1, scale_to=10000, verbose=T){
   if(class(input)=="cell_data_set"){
-    mat<-exprs(mat)
+    mat<-exprs(input)
   }else{
     mat<-input
   }
