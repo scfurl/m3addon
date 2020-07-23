@@ -337,7 +337,7 @@ iterative_LSI <- function(cds,
       if(return_iterations){
         it_count<-paste0("iteration_", iteration)
         outlist[[it_count]]=list(matSVD=svd_list$matSVD, features=original_features[f_idx], clusters=clusters)
-        return(list(cds=cds, iterationlist==outlist))
+        return(list(cds=cds, iterationlist=outlist))
       }else{
         return(cds)
       }
