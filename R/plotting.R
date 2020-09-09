@@ -170,7 +170,7 @@ monocle_theme_opts <- function()
 #' }
 #' @references this function differs from that found in monocle3 as it allows for use of spRing \
 #' dimensionality reduction.
-plot_cells <- function(cds,
+plot_cells_m3addon <- function(cds,
                        x=1,
                        y=2,
                        reduction_method = c("UMAP", "tSNE", "PCA", "LSI", "spRing", "trimap"),
