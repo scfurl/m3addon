@@ -10,12 +10,17 @@ iterative_LSI(
   resolution = c(1e-04, 3e-04, 5e-04),
   num_features = c(3000, 3000, 3000),
   binarize = FALSE,
+  scale = T,
+  log_transform = T,
+  LSI_method = 1,
+  partition_qval = 0.05,
   seed = 2020,
   scale_to = 10000,
   leiden_k = 20,
   leiden_weight = FALSE,
   leiden_iter = 1,
   verbose = F,
+  return_iterations = F,
   ...
 )
 }
@@ -36,6 +41,9 @@ of features for different iterations, supply a vector that is the same length as
 \item{seed}{numeric seed}
 
 \item{scale_to}{numeric value to scale data}
+
+\item{return_iterations}{boolean whether to return iterations; funciton will then output a list contianing the final cds and 
+all SVD matrices, clusters and features used in each iteration}
 }
 \value{
 an updated cell_data_set object with a reduced dimension LSI object and clusters object

@@ -19,6 +19,7 @@ reduce_dimension(
   verbose = FALSE,
   cores = 1,
   num_dim = NULL,
+  seed = 2020,
   ...
 )
 }
