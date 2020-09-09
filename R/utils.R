@@ -32,7 +32,7 @@ common_features <- function(cds_list){
 #' @param cds_list Input cell_data_set object or sparse matrix.
 #' @import Matrix
 #' @export
-tf_idf_transform <- function(input, method=1, scale_to=10000, verbose=T){
+tf_idf_transform <- function(input, method=1, verbose=T){
   if(class(input)=="cell_data_set"){
     mat<-exprs(input)
   }else{
@@ -50,6 +50,7 @@ tf_idf_transform <- function(input, method=1, scale_to=10000, verbose=T){
   
   
   if (method == 1) {
+    #Adapted from Casanovich et al.
     if(verbose) message("Computing Inverse Document Frequency")
     idf   <- as(log(1 + ncol(mat) / row_sums), "sparseVector")
     if(verbose) message("Computing TF-IDF Matrix")
@@ -57,6 +58,7 @@ tf_idf_transform <- function(input, method=1, scale_to=10000, verbose=T){
       mat
   }
   else if (method == 2) {
+    #Adapted from Stuart et al.
     if(verbose) message("Computing Inverse Document Frequency")
     idf   <- as( ncol(mat) / row_sums, "sparseVector")
     if(verbose) message("Computing TF-IDF Matrix")

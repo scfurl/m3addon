@@ -519,3 +519,59 @@ load_umap_model<-function(file, num_dim = NULL){
   })
   model 
 }
+
+
+#' Cluster LSI
+#'
+#' @description This function extracts clustering from the last iteration of LSI (see \code{iterativeLSI})
+#' cell type differences in a single cell experiment.  This function uses the leiden clustering as implemented in monocle3, then finds
+#' less granular clusters in the data using partitions (monocle3) using the reduced dimension LSI input from the last iteration of LSI used.
+#' 
+#' @param cds the cell_data_set upon which to perform this operation.
+#' @param k Nnteger number of nearest neighbors to use when creating the k nearest neighbor graph for Leiden clustering. k is 
+#' related to the resolution of the clustering result, a bigger k will result in lower resolution and vice versa. Default is 20.
+#' @param weight A logical argument to determine whether or not to use Jaccard coefficients for two nearest neighbors (based on the 
+#' overlapping of their kNN) as the weight used for Louvain clustering. Default is FALSE
+#' @param binarize boolean whether to binarize data prior to TFIDF transformation
+#' @param num_iter 	Integer number of iterations used for Leiden clustering. The clustering result giving the largest modularity 
+#' score will be used as the final clustering result. Default is 1. Note that if num_iter is greater than 1, the random_seed argument will be ignored for the louvain method.
+#' @param resolution Parameter that controls the resolution of clustering. If NULL (Default), the parameter is determined automatically.
+#' @param random_seed The seed used by the random number generator in louvain-igraph package. This argument will be ignored if num_iter is larger than 1.
+#' @param verbose A logic flag to determine whether or not we should print the run details.
+#' @param partition_qval Numeric, the q-value cutoff to determine when to partition. Default is 0.05.
+#' @references Granja, J. M.et al. (2019). Single-cell multiomic analysis identifies regulatory programs in mixed-phenotype 
+#' acute leukemia. Nature Biotechnology, 37(12), 1458–1465.
+#' @references Cusanovich, D. A., Reddington, J. P., Garfield, D. A., Daza, R. M., Aghamirzaie, D., Marco-Ferreres, R., et al. (2018). The 
+#'   cis-regulatory dynamics of embryonic development at single-cell resolution. Nature, 555(7697), 538–542.
+#' @references  Vincent D. Blondel, Jean-Loup Guillaume, Renaud Lambiotte, Etienne Lefebvre: Fast unfolding of communities in large 
+#' networks. J. Stat. Mech. (2008) P10008
+#' @references V. A. Traag and L. Waltman and N. J. van Eck: From Louvain to Leiden: guaranteeing well-connected communities. 
+#' Scientific Reports, 9(1) (2019). doi: 10.1038/s41598-019-41695-z.
+#' @referencesJacob H. Levine and et. al. Data-Driven Phenotypic Dissection of AML Reveals Progenitor-like Cells that 
+#' Correlate with Prognosis. Cell, 2015.
+#' @export
+cluster_LSI<-function(cds, 
+                      k = 20, 
+                      weight = F, 
+                      num_iter = 1, 
+                      resolution_parameter = NULL, 
+                      random_seed = 2020, 
+                      verbose = T, 
+                      partition_q_value = 0.05)
+{
+  cluster_result<-monocle3:::leiden_clustering(data = as.matrix(reducedDims(cds)$LSI), 
+                                               pd = colData(cds), k = k, weight = weight, 
+                                               num_iter = num_iter, 
+                                               resolution_parameter = resolution_parameter, 
+                                               random_seed = random_seed, verbose = verbose)
+  cluster_graph_res<-monocle3:::compute_partitions(cluster_result$g, 
+                                                   cluster_result$optim_res, partition_q_value, verbose=t)
+  partitions <- as.factor(igraph::components(cluster_graph_res$cluster_g)$membership[cluster_result$optim_res$membership])
+  clusters <- factor(igraph::membership(cluster_result$optim_res))
+  cds@clusters[["UMAP"]] <- list(cluster_result = cluster_result, 
+                                 partitions = partitions, clusters = clusters)
+  cds
+}
+
+
+
