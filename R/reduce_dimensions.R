@@ -234,7 +234,7 @@ iterative_LSI <- function(cds,
   }
   if(!is.null(exclude_features)){
     mat<-assay(cds)
-    mat<-mat[!rownames(mat) %in% exclude,]
+    mat<-mat[!rownames(mat) %in% exclude_features,]
   }else{
     mat<-assay(cds)
   }
