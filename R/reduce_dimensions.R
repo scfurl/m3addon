@@ -208,6 +208,7 @@ reduce_dimension <- function(cds,
 #' all SVD matrices, clusters and features used in each iteration
 #' @param num_features number of features to use for dimensionality reduction (default 3000).  To use different numbers
 #' of features for different iterations, supply a vector that is the same length as the resolution vector.
+#' @param exclude_features character vector of features (rownames of assay(cds))
 #' @return an updated cell_data_set object with a reduced dimension LSI object and clusters object
 #' @references Granja, J. M.et al. (2019). Single-cell multiomic analysis identifies regulatory programs in mixed-phenotype 
 #' acute leukemia. Nature Biotechnology, 37(12), 1458–1465.
@@ -221,7 +222,7 @@ reduce_dimension <- function(cds,
 iterative_LSI <- function(cds,
                           num_dim=25,
                           resolution=c(1e-4, 3e-4, 5e-4),
-                          num_features=c(3000,3000,3000), 
+                          num_features=c(3000,3000,3000), exclude_features=NULL,
                           binarize=FALSE, scale=T, log_transform=T,
                           LSI_method=1, partition_qval = 0.05, 
                           seed=2020, scale_to = 10000, leiden_k=20, leiden_weight=FALSE, leiden_iter=1, verbose=F, return_iterations=F,
@@ -231,7 +232,13 @@ iterative_LSI <- function(cds,
     message("Numbers of elements for resolution and num_features do not match.  Will use num_features[1]...")
     num_features<-rep(num_features, length(resolution))
   }
-  mat<-assay(cds)
+  if(!is.null(exclude_features)){
+    mat<-assay(cds)
+    mat<-mat[!rownames(mat) %in% exclude,]
+  }else{
+    mat<-assay(cds)
+  }
+  
   original_features<-rownames(mat)
   set.seed(seed)
   if(binarize){
