@@ -1,5 +1,5 @@
-#'  Still working on this function
-#'  @export
+#' Still working on this function
+#' @export
 cluster_PCA<-function(cds, method="louvain",
                       k = 20, dims=NULL,
                       weight = F, 

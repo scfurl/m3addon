@@ -2,8 +2,7 @@
 % Please edit documentation in R/clustering.R
 \name{cluster_PCA}
 \alias{cluster_PCA}
-\title{Still working on this function
- @export}
+\title{Still working on this function}
 \usage{
 cluster_PCA(
   cds,
@@ -20,5 +19,4 @@ cluster_PCA(
 }
 \description{
 Still working on this function
- @export
 }
