@@ -9,6 +9,7 @@ iterative_LSI(
   num_dim = 25,
   resolution = c(1e-04, 3e-04, 5e-04),
   num_features = c(3000, 3000, 3000),
+  exclude_features = NULL,
   binarize = FALSE,
   scale = T,
   log_transform = T,
@@ -35,6 +36,8 @@ of all PCs}
 
 \item{num_features}{number of features to use for dimensionality reduction (default 3000).  To use different numbers
 of features for different iterations, supply a vector that is the same length as the resolution vector.}
+
+\item{exclude_features}{character vector of features (rownames of assay(cds))}
 
 \item{binarize}{boolean whether to binarize data prior to TFIDF transformation}
 
