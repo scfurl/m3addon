@@ -1,7 +1,7 @@
 Package: m3addon
 Type: Package
 Title: This package adds  to the popular "monocle3"
-Version: 0.1
+Version: 0.2
 Date: 2019-06-24
 Author: ScottFurlan
 Maintainer: ScottFurlan <scottfuran@gmail.com>
