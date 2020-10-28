@@ -554,7 +554,7 @@ load_umap_model<-function(file, num_dim = NULL){
 #' networks. J. Stat. Mech. (2008) P10008
 #' @references V. A. Traag and L. Waltman and N. J. van Eck: From Louvain to Leiden: guaranteeing well-connected communities. 
 #' Scientific Reports, 9(1) (2019). doi: 10.1038/s41598-019-41695-z.
-#' @referencesJacob H. Levine and et. al. Data-Driven Phenotypic Dissection of AML Reveals Progenitor-like Cells that 
+#' @references Jacob H. Levine and et. al. Data-Driven Phenotypic Dissection of AML Reveals Progenitor-like Cells that 
 #' Correlate with Prognosis. Cell, 2015.
 #' @export
 cluster_LSI<-function(cds, 
