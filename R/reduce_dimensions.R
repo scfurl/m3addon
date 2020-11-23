@@ -413,8 +413,56 @@ sparseRowVariances <- function (m){
 #   }'
 # )
 
+#New save_umap
 #' @export
-save_umap_model<-function(model, file){
+save_umap_model <- function(model, file){
+  if (!is.null(model$nn_index$ann)) {
+    save_umap_model_new(model = model, file = file)
+  }
+  else {
+    save_umap_model_depracated(model = model, file = file) #backwards to previous version
+  }
+}
+
+#' @export
+save_umap_model_new<-function(model, file){
+  file <- file.path(normalizePath(dirname(file)), basename(file))
+  wd <- getwd()
+  mod_dir <- tempfile(pattern = "dir")
+  dir.create(mod_dir)
+  uwot_dir <- file.path(mod_dir, "uwot")
+  dir.create(uwot_dir)
+  model_tmpfname <- file.path(uwot_dir, "model")
+  saveRDS(model, file = model_tmpfname)
+  metrics <- names(model$metric)
+  n_metrics <- length(metrics)
+  for (i in seq_len(n_metrics)) {
+    nn_tmpfname <- file.path(uwot_dir, paste0("nn", i))
+    if (n_metrics == 1) {
+      model$nn_index$ann$save(nn_tmpfname)
+      model$nn_index$ann$unload()
+      model$nn_index$ann$load(nn_tmpfname)
+    }
+    else {
+      model$nn_index[[i]]$ann$save(nn_tmpfname)
+      model$nn_index[[i]]$ann$unload()
+      model$nn_index[[i]]$ann$load(nn_tmpfname)
+    }
+  }
+  setwd(mod_dir)
+  system2("tar", "-cvf uwot.tar uwot", stdout = NULL, stderr = NULL)
+  o <- file_rename("uwot.tar", file)
+  setwd(wd)
+  if (file.exists(mod_dir)) {
+    unlink(mod_dir, recursive = TRUE)
+  }
+  return(o)
+}
+
+
+
+#' @export
+save_umap_model_depracated<-function(model, file){
   file <- file.path(normalizePath(dirname(file)), basename(file))
   wd <- getwd()
   mod_dir <- tempfile(pattern = "dir")
@@ -481,8 +529,15 @@ file_rename<-function(from = NULL, to = NULL){
   
 }
 
+
+#New load_umap_model
 #' @export
-load_umap_model<-function(file, num_dim = NULL){
+load_umap_model <- function(file, num_dim = NULL){
+  load_umap_model_new(file = file, num_dim = num_dim) 
+}
+
+#' @export
+load_umap_model_new<-function(file, num_dim = NULL){
   model <- NULL
   tryCatch({
     mod_dir <- tempfile(pattern = "dir")
@@ -514,9 +569,9 @@ load_umap_model<-function(file, num_dim = NULL){
       ann <- uwot:::create_ann(metric, ndim = num_dim2)
       ann$load(nn_fname)
       if (n_metrics == 1) {
-        model$nn_index <- ann
+        model$nn_index$ann <- ann
       }else{
-        model$nn_index[[i]] <- ann
+        model$nn_index[[i]]$ann <- ann
       }
     }
   }, finally = {
