@@ -533,7 +533,11 @@ file_rename<-function(from = NULL, to = NULL){
 #New load_umap_model
 #' @export
 load_umap_model <- function(file, num_dim = NULL){
-  load_umap_model_new(file = file, num_dim = num_dim) 
+    tryCatch({
+      load_umap_model_new(file = file, num_dim = num_dim) 
+    }, error = function(x){
+      load_umap_model_depracated(file = file, num_dim = num_dim)
+    })
 }
 
 #' @export
@@ -582,7 +586,51 @@ load_umap_model_new<-function(file, num_dim = NULL){
   model 
 }
 
-
+#' @export
+load_umap_model_depracated<-function(file, num_dim = NULL){
+  model <- NULL
+  tryCatch({
+    mod_dir <- tempfile(pattern = "dir")
+    dir.create(mod_dir)
+    utils::untar(file, exdir = mod_dir)
+    model_fname <- file.path(mod_dir, "uwot/model")
+    if (!file.exists(model_fname)) {
+      stop("Can't find model in ", file)
+    }
+    model <- readRDS(file = model_fname)
+    metrics <- names(model$metric)
+    n_metrics <- length(metrics)
+    for (i in seq_len(n_metrics)){
+      nn_fname <- file.path(mod_dir, paste0("uwot/nn", i))
+      if (!file.exists(nn_fname)) {
+        stop("Can't find nearest neighbor index ", nn_fname, " in ", file)
+      }
+      metric <- metrics[[i]]
+      if(length(model$metric[[i]]) == 0){
+        if(!is.null(num_dim)){
+          num_dim2 <- num_dim
+        }else{
+          num_dim2 <- length(model$metric[[i]])
+        }
+      }
+      if(!is.null(num_dim)){
+        num_dim2 <- num_dim
+      }
+      ann <- uwot:::create_ann(metric, ndim = num_dim2)
+      ann$load(nn_fname)
+      if (n_metrics == 1) {
+        model$nn_index <- ann
+      }else{
+        model$nn_index[[i]] <- ann
+      }
+    }
+  }, finally = {
+    if (file.exists(mod_dir)) {
+      unlink(mod_dir, recursive = TRUE)
+    }
+  })
+  model 
+}
 #' Cluster LSI
 #'
 #' @description This function extracts clustering from the last iteration of LSI (see \code{iterativeLSI})
