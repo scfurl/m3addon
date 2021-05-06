@@ -43,6 +43,11 @@ project_data <- function(
   check_input(input = verbose, name = "verbose", valid = c("boolean"))
   check_input(input = threads, name = "threads", valid = c("integer"))
   
+  #backwards compatible
+  if(reduced_dim=="LSI"){
+    reduced_dim<-"iLSI"
+  }
+  
   ##################################################
   # Extract data from bulk
   ##################################################
