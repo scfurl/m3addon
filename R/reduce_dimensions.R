@@ -220,14 +220,19 @@ reduce_dimension <- function(cds,
 #'   cis-regulatory dynamics of embryonic development at single-cell resolution. Nature, 555(7697), 538–542.
 #' @export
 iterative_LSI <- function(cds,
-                          num_dim=25,
-                          resolution=c(1e-4, 3e-4, 5e-4),
+                          num_dim=25, starting_features = NULL,
+                          resolution=c(1e-4, 3e-4, 5e-4), do_tf_idf=T,
                           num_features=c(3000,3000,3000), exclude_features=NULL,
                           binarize=FALSE, scale=T, log_transform=T,
                           LSI_method=1, partition_qval = 0.05, 
                           seed=2020, scale_to = 10000, leiden_k=20, leiden_weight=FALSE, leiden_iter=1, verbose=F, return_iterations=F,
                           ...){
   extra_arguments <- list(...)
+  if(!is.null(starting_features)){
+    if(length(num_features)!=length(resolution)){
+      num_features<-c(length(starting_features), num_features)
+    }
+  }
   if(length(num_features)!=length(resolution)){
     message("Numbers of elements for resolution and num_features do not match.  Will use num_features[1]...")
     num_features<-rep(num_features, length(resolution))
@@ -257,10 +262,21 @@ iterative_LSI <- function(cds,
   }
 
   message("Performing LSI/SDF for iteration 1....")
-  f_idx<-head(order(sparseRowVariances(matNorm),decreasing=TRUE), num_features[1])
-  tf<-tf_idf_transform(mat[f_idx,], method = LSI_method)
-  row_sums<-Matrix::rowSums(mat[f_idx,])
-  tf@x[is.na(tf@x)] <- 0
+  if(!is.null(starting_features)){
+    if(!all(starting_features %in% rownames(mat))){stop("Not all starting features found in data")}
+    f_idx<-which(starting_features %in% rownames(mat))
+  }else{
+    f_idx<-head(order(sparseRowVariances(matNorm),decreasing=TRUE), num_features[1])
+  }
+  if(do_tf_idf){
+    tf<-tf_idf_transform(mat[f_idx,], method = LSI_method)
+    row_sums<-Matrix::rowSums(mat[f_idx,])
+    tf@x[is.na(tf@x)] <- 0
+  }else{
+    tf<-mat[f_idx,]
+    row_sums<-Matrix::rowSums(mat[f_idx,])
+  }
+  
   svd_list<-svd_lsi(tf, num_dim, mat_only=FALSE)
   cluster_result <- monocle3:::leiden_clustering(data = svd_list$matSVD, 
                                       pd = colData(cds), k = leiden_k, weight = leiden_weight, num_iter = leiden_iter, 
@@ -276,7 +292,7 @@ iterative_LSI <- function(cds,
                      row_sums = row_sums, seed=seed, binarize=binarize, 
                      scale_to=scale_to, num_dim=num_dim, resolution=resolution, 
                      granges=rowRanges(cds)[f_idx], LSI_method=LSI_method, outliers=NULL)
-    pp_aux <- SimpleList(iLSI=iLSI, gene_loadings=irlba_rotation)
+    pp_aux <- SimpleList(iLSI=iLSI, gene_loadings=irlba_rotation, features=original_features[f_idx])
     cds@preprocess_aux <- pp_aux
     if (length(unique(cluster_result$optim_res$membership)) > 
         1) {
@@ -326,7 +342,7 @@ iterative_LSI <- function(cds,
                        row_sums = row_sums, seed=seed, binarize=binarize, 
                        scale_to=scale_to, num_dim=num_dim, resolution=resolution, 
                        granges=rowRanges(cds)[f_idx], LSI_method=LSI_method, outliers=NULL)
-      pp_aux <- SimpleList(iLSI=iLSI, gene_loadings=irlba_rotation)
+      pp_aux <- SimpleList(iLSI=iLSI, gene_loadings=irlba_rotation, features=original_features[f_idx])
       cds@preprocess_aux <- pp_aux
       if (length(unique(cluster_result$optim_res$membership)) > 
           1) {

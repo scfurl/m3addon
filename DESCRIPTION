@@ -25,7 +25,8 @@ Imports:
   reshape2 (>= 1.3),
   batchelor (>= 1.0),
   fields (>= 9.0),
-  densityClust (>= 0.3)
+  densityClust (>= 0.3),
+  entropy(>= 1.2)
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 7.1.1
 Encoding: UTF-8

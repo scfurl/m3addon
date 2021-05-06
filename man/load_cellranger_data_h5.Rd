@@ -5,9 +5,10 @@
 \title{Make monocle3 cell_data_set using cellranger h5}
 \usage{
 load_cellranger_data_h5(
-  folders,
+  folders = NULL,
   samplenames = NULL,
   unfiltered = F,
+  files = NULL,
   empty.droplet.threshold = 15,
   expressed_genes = TRUE,
   cell_min = 1,
@@ -26,6 +27,8 @@ each element in filelist.  This defaults to the the basename of the filelist ele
 
 \item{unfiltered}{This parameter, if true, returns a list containing 1) the filtered cds,
 2) a list of unfiltered cds for each sample in 'folders'.}
+
+\item{files}{A vector of filtered h5 cellranger files.  Not compatible with unfiltered reading mode or aggregated mode.}
 
 \item{empty.droplet.threshold}{minimum number of umis per droplet to include in unfiltered output (default 15)}
 

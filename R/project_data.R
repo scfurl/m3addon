@@ -11,7 +11,7 @@
 #' @param make_pseudo_single_cells whether to make pseudo-single cells from the data in the projectee (set this to true for bulk data)
 #' @param ncells_coembedding number of cells in the projector to use in in the co-embedding with simulated single cells; default is 5000, will automatically
 #' default to the total number of cells in the projector if less than this value.
-#' @param reduced_dim A string specifying the reducedDim (currently LSI supported).
+#' @param reduced_dim A string specifying the reducedDim (currently LSI and PCA supported).
 #' @param embedding A string specifying embedding type (currently UMAP supported).
 #' @param n An integer specifying the number of subsampled "pseudo single cells" per bulk sample.  Note this is only relevant if 
 #' make_pseudo_single_cells is TRUE
@@ -47,7 +47,7 @@ project_data <- function(
   # Extract data from bulk
   ##################################################
   rD<-reducedDims(projector)[[reduced_dim]]
-  LSI_num_dim<-projector@preprocess_aux$iLSI$num_dim
+  #rD_num_dum<-projector@preprocess_aux$iLSI$num_dim
   match(names(projector@reduce_dim_aux), embedding)
   embedding_num_dim<-projector@reduce_dim_aux[[embedding]]$num_dim
   
@@ -55,12 +55,12 @@ project_data <- function(
   rownames(sc_embedding)<-colnames(projector)
   
   if(features[1] %in% "annotation-based"){
-    query<-projector@preprocess_aux$iLSI$features
+    query<-projector@preprocess_aux[[reduced_dim]]$features
     shared_rd<-extract_data(query, projectee)
   }
   
   if(features[1] %in% "range-based"){
-    query<-projector@preprocess_aux$iLSI$granges
+    query<-projector@preprocess_aux[[reduced_dim]]$granges
     shared_rd<-extract_data(query, projectee)
   }
   
@@ -78,7 +78,7 @@ project_data <- function(
   # Simulate single cells and project using original LSI/SVD model
   ##################################################
   if(make_pseudo_single_cells){
-    depthN <- round(sum(projector@preprocess_aux$iLSI$row_sums / nrow(rD)))
+    depthN <- round(sum(projector@preprocess_aux[[reduced_dim]]$row_sums / nrow(rD)))
     nRep <- 5
     n2 <- ceiling(n / nRep)
     ratios <- c(2, 1.5, 1, 0.5, 0.25) #range of ratios of number of fragments
@@ -95,7 +95,7 @@ project_data <- function(
         simMat
       }) %>%  Reduce("rbind", .)
       simMat <- Matrix::sparseMatrix(i = simMat[,2], j = simMat[,1], x = rep(1, nrow(simMat)), dims = c(nrow(shared_rd$mat), n2 * nRep))
-      projRD <- as.matrix(projectLSI(simMat, LSI = projector@preprocess_aux$iLSI, verbose = verbose))
+      projRD <- as.matrix(projectLSI(simMat, LSI = projector@preprocess_aux[[reduced_dim]], verbose = verbose))
       rownames(projRD) <- paste0(colnames(shared_rd$mat)[x], "#", seq_len(nrow(projRD)))
       projRD
     }, mc.cores =  threads) %>% Reduce("rbind", .)
@@ -110,7 +110,7 @@ project_data <- function(
       projRD <- scale_dims(projRD)
     }
   }else{
-    projRD <- as.matrix(projectLSI(shared_rd$mat, LSI = projector@preprocess_aux$iLSI, verbose = verbose))
+    projRD <- as.matrix(projectLSI(shared_rd$mat, LSI = projector@preprocess_aux[[reduced_dim]], verbose = verbose))
   }
   
   ##################################################

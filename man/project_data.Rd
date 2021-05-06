@@ -30,7 +30,7 @@ the models contained in the projector}
 \item{ncells_coembedding}{number of cells in the projector to use in in the co-embedding with simulated single cells; default is 5000, will automatically
 default to the total number of cells in the projector if less than this value.}
 
-\item{reduced_dim}{A string specifying the reducedDim (currently LSI supported).}
+\item{reduced_dim}{A string specifying the reducedDim (currently LSI and PCA supported).}
 
 \item{embedding}{A string specifying embedding type (currently UMAP supported).}
 

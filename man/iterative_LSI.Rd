@@ -7,7 +7,9 @@
 iterative_LSI(
   cds,
   num_dim = 25,
+  starting_features = NULL,
   resolution = c(1e-04, 3e-04, 5e-04),
+  do_tf_idf = T,
   num_features = c(3000, 3000, 3000),
   exclude_features = NULL,
   binarize = FALSE,
