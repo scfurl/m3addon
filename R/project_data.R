@@ -4,7 +4,7 @@
 #' Jeffrey M. Granja, M. Ryan Corces, Sarah E. Pierce, S. Tansu Bagdatli, Hani Choudhry, Howard Y. Chang, William J. Greenleaf
 #' doi: https://doi.org/10.1101/2020.04.28.066498
 #' 
-#' @param projector cell_data_set object with a reduced dimension matrix (currently iLSI supported) as specified in
+#' @param projector cell_data_set object with a reduced dimension matrix (currently LSI supported) as specified in
 #' reduced_dim argument and a model used to create a low dimensional embedding
 #' @param projectee a SummarizedExperiment type object (cell_data_set currently supported) to be projected using 
 #' the models contained in the projector
@@ -45,9 +45,10 @@ project_data <- function(
   
   #backwards compatible
   if(reduced_dim=="LSI"){
-    reduced_dim<-"iLSI"
+    reduced_dim_aux<-"iLSI"
+  }else{
+    reduced_dim_aux<-"PCA"
   }
-  
   ##################################################
   # Extract data from bulk
   ##################################################
@@ -60,12 +61,12 @@ project_data <- function(
   rownames(sc_embedding)<-colnames(projector)
   
   if(features[1] %in% "annotation-based"){
-    query<-projector@preprocess_aux[[reduced_dim]]$features
+    query<-projector@preprocess_aux[[reduced_dim_aux]]$features
     shared_rd<-extract_data(query, projectee)
   }
   
   if(features[1] %in% "range-based"){
-    query<-projector@preprocess_aux[[reduced_dim]]$granges
+    query<-projector@preprocess_aux[[reduced_dim_aux]]$granges
     shared_rd<-extract_data(query, projectee)
   }
   
@@ -83,7 +84,7 @@ project_data <- function(
   # Simulate single cells and project using original LSI/SVD model
   ##################################################
   if(make_pseudo_single_cells){
-    depthN <- round(sum(projector@preprocess_aux[[reduced_dim]]$row_sums / nrow(rD)))
+    depthN <- round(sum(projector@preprocess_aux[[reduced_dim_aux]]$row_sums / nrow(rD)))
     nRep <- 5
     n2 <- ceiling(n / nRep)
     ratios <- c(2, 1.5, 1, 0.5, 0.25) #range of ratios of number of fragments
@@ -100,7 +101,7 @@ project_data <- function(
         simMat
       }) %>%  Reduce("rbind", .)
       simMat <- Matrix::sparseMatrix(i = simMat[,2], j = simMat[,1], x = rep(1, nrow(simMat)), dims = c(nrow(shared_rd$mat), n2 * nRep))
-      projRD <- as.matrix(projectLSI(simMat, LSI = projector@preprocess_aux[[reduced_dim]], verbose = verbose))
+      projRD <- as.matrix(projectLSI(simMat, LSI = projector@preprocess_aux[[reduced_dim_aux]], verbose = verbose))
       rownames(projRD) <- paste0(colnames(shared_rd$mat)[x], "#", seq_len(nrow(projRD)))
       projRD
     }, mc.cores =  threads) %>% Reduce("rbind", .)
@@ -115,7 +116,7 @@ project_data <- function(
       projRD <- scale_dims(projRD)
     }
   }else{
-    projRD <- as.matrix(projectLSI(shared_rd$mat, LSI = projector@preprocess_aux[[reduced_dim]], verbose = verbose))
+    projRD <- as.matrix(projectLSI(shared_rd$mat, LSI = projector@preprocess_aux[[reduced_dim_aux]], verbose = verbose))
   }
   
   ##################################################
