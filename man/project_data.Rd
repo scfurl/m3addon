@@ -21,7 +21,7 @@ project_data(
 )
 }
 \arguments{
-\item{projector}{cell_data_set object with a reduced dimension matrix (currently iLSI supported) as specified in
+\item{projector}{cell_data_set object with a reduced dimension matrix (currently LSI supported) as specified in
 reduced_dim argument and a model used to create a low dimensional embedding}
 
 \item{projectee}{a SummarizedExperiment type object (cell_data_set currently supported) to be projected using 

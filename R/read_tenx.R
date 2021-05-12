@@ -110,7 +110,7 @@ read.cds.starsolo.file = function(folder) {
 #' @param samplenames An optional vector that corresponds to the names you would like to give to
 #'each element in filelist.  This defaults to the the basename of the filelist element i.e.
 # the folder /home/user/cellranger/runs/Samp1-SA-GA_A1 would be given the name: "Samp1-SA-GA_A1"
-#' @param files A vector of filtered h5 cellranger files.  Not compatible with unfiltered reading mode or aggregated mode.
+#' @param files A vector of filtered h5 cellranger files.  Not compatible with aggregated mode.
 #' @param unfiltered This parameter, if true, returns a list containing 1) the filtered cds,
 #'2) a list of unfiltered cds for each sample in 'folders'.
 #' @param empty.droplet.threshold minimum number of umis per droplet to include in unfiltered output (default 15)
@@ -134,9 +134,8 @@ load_cellranger_data_h5<-function(folders=NULL,
   #This function reads a vector of cellranger folder "out" folders for .h5 files.  Optionally can
   #return the unfiltered data as well.  
   if(!is.null(files) & !is.null(folders)){stop("Run either specifying folders or files")}
-  if(!is.null(files) & unfiltered){stop("File mode not compatible with unfiltered")}
   if(!is.null(files) & aggregated){stop("File mode not compatible with aggregated")}
-  if(!is.null(files)){filemode<-T}
+  if(!is.null(files)){filemode<-T}else{filemode<-F}
   if(!chemistry %in% c("threeprime", "fiveprime", "SC3Pv1", "SC3Pv2", "SC3Pv3", "SC5P-PE", "SC5P-R2", "ATAC")){stop("Chemistry not found")}
   if(chemistry %in% c("threeprime", "fiveprime", "SC3Pv1", "SC3Pv2", "SC3Pv3", "SC5P-PE", "SC5P-R2")){
     if(aggregated){
@@ -179,13 +178,13 @@ load_cellranger_data_h5<-function(folders=NULL,
     if(filemode){
       folders<-files
     }else{
-      folders<-file.path(folders, "outs", "filtered_feature_bc_matrix.h5")
+      filt_folders<-file.path(folders, "outs", "filtered_feature_bc_matrix.h5")
     }
     if(is.null(samplenames)){
-      sample.ids<-folders
-      names(sample.ids)<-sapply(folders, basename)
+      sample.ids<-filt_folders
+      names(sample.ids)<-sapply(filt_folders, basename)
     }else{
-      sample.ids<-folders
+      sample.ids<-filt_folders
       names(sample.ids)<-samplenames
     }
     
@@ -245,11 +244,25 @@ load_cellranger_data_h5<-function(folders=NULL,
     #####unfilt
     #read unfiltered data
     unfiltered.cds.list<-list()
+    if(filemode){
+      folders<-files
+    }else{
+      unfilt_folders<-file.path(folders, "outs", "raw_feature_bc_matrix.h5")
+    }
+    if(is.null(samplenames)){
+      sample.ids<-unfilt_folders
+      names(sample.ids)<-sapply(unfilt_folders, basename)
+    }else{
+      sample.ids<-unfilt_folders
+      names(sample.ids)<-samplenames
+    }
     for(sample.id in sample.ids){
         message(paste0("Reading (unfiltered) data for: ", sample.id))
         unfiltered.cds.list[[sample.id]] = read.cds.cellranger.h5.file(
           file.path(sample.id))
         pData(unfiltered.cds.list[[sample.id]])$n.umi<-colSums(exprs(unfiltered.cds.list[[sample.id]]))
+        #filter out based on empty droplet threshold
+        unfiltered.cds.list[[sample.id]]<-unfiltered.cds.list[[sample.id]][,unfiltered.cds.list[[sample.id]]$n.umi>empty.droplet.threshold]
     }
     
     #add_and checkrownames
