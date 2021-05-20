@@ -9,6 +9,7 @@ load_cellranger_data_h5(
   samplenames = NULL,
   unfiltered = F,
   files = NULL,
+  unfilt_files = NULL,
   empty.droplet.threshold = 15,
   expressed_genes = TRUE,
   cell_min = 1,
@@ -29,6 +30,8 @@ each element in filelist.  This defaults to the the basename of the filelist ele
 2) a list of unfiltered cds for each sample in 'folders'.}
 
 \item{files}{A vector of filtered h5 cellranger files.  Not compatible with aggregated mode.}
+
+\item{unfilt_files}{A vector of unfiltered h5 cellranger files.  Not compatible with aggregated mode.  Will be ignored if unfiltered is FALSE.}
 
 \item{empty.droplet.threshold}{minimum number of umis per droplet to include in unfiltered output (default 15)}
 

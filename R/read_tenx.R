@@ -111,6 +111,7 @@ read.cds.starsolo.file = function(folder) {
 #'each element in filelist.  This defaults to the the basename of the filelist element i.e.
 # the folder /home/user/cellranger/runs/Samp1-SA-GA_A1 would be given the name: "Samp1-SA-GA_A1"
 #' @param files A vector of filtered h5 cellranger files.  Not compatible with aggregated mode.
+#' @param unfilt_files A vector of unfiltered h5 cellranger files.  Not compatible with aggregated mode.  Will be ignored if unfiltered is FALSE.
 #' @param unfiltered This parameter, if true, returns a list containing 1) the filtered cds,
 #'2) a list of unfiltered cds for each sample in 'folders'.
 #' @param empty.droplet.threshold minimum number of umis per droplet to include in unfiltered output (default 15)
@@ -125,7 +126,7 @@ read.cds.starsolo.file = function(folder) {
 load_cellranger_data_h5<-function(folders=NULL, 
                                   samplenames=NULL, 
                                   unfiltered=F,
-                                  files=NULL,
+                                  files=NULL, unfilt_files=NULL,
                                   empty.droplet.threshold=15, 
                                   expressed_genes=TRUE,
                                   cell_min=1,
@@ -135,6 +136,7 @@ load_cellranger_data_h5<-function(folders=NULL,
   #return the unfiltered data as well.  
   if(!is.null(files) & !is.null(folders)){stop("Run either specifying folders or files")}
   if(!is.null(files) & aggregated){stop("File mode not compatible with aggregated")}
+  if(!is.null(files) & is.null(unfilt_files) & unfiltered){stop("Running unfiltered files, but filenames (unfilt_files) not provided")}
   if(!is.null(files)){filemode<-T}else{filemode<-F}
   if(!chemistry %in% c("threeprime", "fiveprime", "SC3Pv1", "SC3Pv2", "SC3Pv3", "SC5P-PE", "SC5P-R2", "ATAC")){stop("Chemistry not found")}
   if(chemistry %in% c("threeprime", "fiveprime", "SC3Pv1", "SC3Pv2", "SC3Pv3", "SC5P-PE", "SC5P-R2")){
@@ -176,7 +178,7 @@ load_cellranger_data_h5<-function(folders=NULL,
     #browser()
     #multiple files (no_agg); unfiltered option
     if(filemode){
-      folders<-files
+      filt_folders<-files
     }else{
       filt_folders<-file.path(folders, "outs", "filtered_feature_bc_matrix.h5")
     }
@@ -245,7 +247,7 @@ load_cellranger_data_h5<-function(folders=NULL,
     #read unfiltered data
     unfiltered.cds.list<-list()
     if(filemode){
-      folders<-files
+      unfilt_folders<-unfilt_files
     }else{
       unfilt_folders<-file.path(folders, "outs", "raw_feature_bc_matrix.h5")
     }
