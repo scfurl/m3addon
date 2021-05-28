@@ -36,7 +36,7 @@
 #' @param ... additional arguments to pass to limma::lmFit if
 #'   residual_model_formula is not NULL
 #' @return an updated cell_data_set object
-#' @export
+
 preprocess_cds <- function(cds, method = c('PCA', "LSI"),
                            num_dim=50,
                            norm_method = c("log", "size_only", "none"),
