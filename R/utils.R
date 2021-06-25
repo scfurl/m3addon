@@ -42,6 +42,7 @@ tf_idf_transform <- function(input, method=1, verbose=T){
   row_sums<-Matrix::rowSums(mat)
   nz<-which(row_sums>0)
   mat <- mat[nz,]
+  rn <- rn[nz]
   row_sums <- row_sums[nz]
   col_sums <- Matrix::colSums(mat)
   
