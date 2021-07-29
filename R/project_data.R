@@ -238,7 +238,7 @@ extract_data<-function(query,
     hits$var<-rowVars(dat)[hits$subjectHits]
     hits$mean<-rowMeans(dat)[hits$subjectHits]
     hits$disp<-sqrt(hits$var)/hits$mean*100
-    best_hits <- hits %>% group_by(queryHits) %>% filter(get(Var1) == FUN(get(Var1)))
+    best_hits <- hits %>% dplyr::group_by(queryHits) %>% dplyr::filter(get(Var1) == FUN(get(Var1)))
     if(nrow(best_hits) == 0){
       stop(paste0("No overlap between query and subject found."))
     }
@@ -505,7 +505,7 @@ projectLSI<-function (mat = NULL, LSI = NULL, returnModel = FALSE, verbose = FAL
     }
     mat@x <- mat@x/rep.int(colSm, Matrix::diff(mat@p))
     if (LSI$LSI_method == 1) {
-      #Adapted from Casanovich et al.
+      #Adapted from Cusanovich et al.
       
       if(verbose) message("Computing Inverse Document Frequency")
       idf   <- as(log(1 + nrow(LSI$svd$v) / LSI$row_sums), "sparseVector")
